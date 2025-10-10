@@ -95,6 +95,29 @@ tnnl/
 └── LICENSE                     # MIT License
 ```
 
+## Version Management & Releases
+
+When preparing a new release, use the provided script to bump versions across all required files:
+
+```bash
+# Update version in package.json, tauri.conf.json, and Cargo.toml
+./bump-version.sh 0.1.3
+```
+
+This ensures version consistency between:
+- `package.json` (frontend)
+- `src-tauri/tauri.conf.json` (Tauri config)
+- `src-tauri/Cargo.toml` (Rust package, used for bundle filenames)
+
+### Release Process
+
+1. Bump version: `./bump-version.sh <version>`
+2. Commit: `git commit -am "Release v<version>: <description>"`
+3. Tag: `git tag -a v<version> -m "Release v<version>"`
+4. Push: `git push origin main && git push origin v<version>`
+5. GitHub Actions will build and create a draft release
+6. Edit release notes and publish
+
 ## Development Setup
 
 ### Prerequisites
