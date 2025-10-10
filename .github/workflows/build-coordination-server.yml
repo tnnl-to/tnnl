@@ -28,13 +28,12 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-          target: x86_64-unknown-linux-gnu
 
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('backend/coordination-server/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
@@ -42,7 +41,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('backend/coordination-server/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-git-
 
@@ -50,24 +49,24 @@ jobs:
         uses: actions/cache@v4
         with:
           path: backend/coordination-server/target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-target-${{ hashFiles('backend/coordination-server/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-target-
 
       - name: Build coordination server
         run: |
           cd backend/coordination-server
-          cargo build --release --target x86_64-unknown-linux-gnu
+          cargo build --release
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: coordination-server-linux-x86_64
-          path: backend/coordination-server/target/x86_64-unknown-linux-gnu/release/coordination-server
+          path: backend/coordination-server/target/release/coordination-server
           retention-days: 30
 
       - name: Display build info
         run: |
           echo "✅ Coordination server built successfully"
-          echo "Binary location: backend/coordination-server/target/x86_64-unknown-linux-gnu/release/coordination-server"
-          ls -lh backend/coordination-server/target/x86_64-unknown-linux-gnu/release/coordination-server
+          echo "Binary location: backend/coordination-server/target/release/coordination-server"
+          ls -lh backend/coordination-server/target/release/coordination-server
