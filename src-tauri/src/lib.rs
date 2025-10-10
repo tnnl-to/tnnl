@@ -136,27 +136,30 @@ pub fn run() {
                             });
                         }
                         "toggle_websocket" => {
+                            let app_clone = app.clone();
                             tauri::async_runtime::spawn(async move {
-                                // Check current status
-                                let is_running = match websocket_server::get_server_info().await {
-                                    Ok(info) => info.is_running,
-                                    Err(e) => {
-                                        eprintln!("[tnnl] ✗ Failed to get WebSocket status: {}", e);
-                                        return;
-                                    }
-                                };
+                                // Check if tunnel is active
+                                let tunnel_info = coordination_client::get_tunnel_info().await;
 
-                                if is_running {
-                                    // Currently running, so stop
-                                    match websocket_server::stop_server().await {
-                                        Ok(_) => println!("[tnnl] ✓ WebSocket server stopped"),
-                                        Err(e) => eprintln!("[tnnl] ✗ Stop WebSocket failed: {}", e),
+                                if tunnel_info.is_some() {
+                                    // Tunnel is active, disconnect it
+                                    match coordination_client::disconnect_from_coordination(&app_clone).await {
+                                        Ok(_) => println!("[tnnl] ✓ Tunnel disconnected"),
+                                        Err(e) => eprintln!("[tnnl] ✗ Tunnel disconnect failed: {}", e),
                                     }
                                 } else {
-                                    // Not running, so start
-                                    match websocket_server::start_server(9001).await {
-                                        Ok(msg) => println!("[tnnl] ✓ {}", msg),
-                                        Err(e) => eprintln!("[tnnl] ✗ WebSocket server failed: {}", e),
+                                    // Tunnel not active, open settings window for user to connect
+                                    println!("[tnnl] Opening settings to connect to tunnel...");
+                                    if let Some(window) = app_clone.get_webview_window("main") {
+                                        let _ = window.show();
+                                        let _ = window.set_focus();
+
+                                        // On macOS, show in app switcher when window opens
+                                        #[cfg(target_os = "macos")]
+                                        {
+                                            use tauri::ActivationPolicy;
+                                            let _ = app_clone.set_activation_policy(ActivationPolicy::Regular);
+                                        }
                                     }
                                 }
                             });
