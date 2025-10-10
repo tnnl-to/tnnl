@@ -525,26 +525,44 @@ async fn update_tray_menu_status(
     capture_active: bool,
     tunnel_active: bool,
 ) -> Result<String, String> {
-    use tauri::menu::MenuItemKind;
+    // In Tauri 2.x, we need to rebuild the menu with updated items
+    // This is called frequently (every 2 seconds), so we just rebuild the tray menu
 
-    // Get the tray and menu
-    let tray = app.tray_by_id("main").ok_or("Tray not found")?;
-    let menu = tray.menu().ok_or("Menu not found")?;
-
-    // Update screen capture status
     let capture_icon = if capture_active { "🟢" } else { "⚪" };
     let capture_text = format!("{} Screen Capture", capture_icon);
 
-    if let Some(MenuItemKind::MenuItem(item)) = menu.get("toggle_capture") {
-        item.set_text(capture_text).map_err(|e| e.to_string())?;
-    }
-
-    // Update tunnel status
     let tunnel_icon = if tunnel_active { "🟢" } else { "⚪" };
     let tunnel_text = format!("{} tnnl.to Tunnel", tunnel_icon);
 
-    if let Some(MenuItemKind::MenuItem(item)) = menu.get("toggle_websocket") {
-        item.set_text(tunnel_text).map_err(|e| e.to_string())?;
+    // Rebuild menu items with new text
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+
+    let toggle_capture = MenuItemBuilder::with_id("toggle_capture", &capture_text)
+        .build(&app)
+        .map_err(|e| e.to_string())?;
+    let toggle_websocket = MenuItemBuilder::with_id("toggle_websocket", &tunnel_text)
+        .build(&app)
+        .map_err(|e| e.to_string())?;
+    let show_settings = MenuItemBuilder::with_id("show_settings", "Show Settings")
+        .build(&app)
+        .map_err(|e| e.to_string())?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit")
+        .build(&app)
+        .map_err(|e| e.to_string())?;
+
+    let menu = MenuBuilder::new(&app)
+        .item(&toggle_capture)
+        .item(&toggle_websocket)
+        .separator()
+        .item(&show_settings)
+        .separator()
+        .item(&quit)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    // Update the tray menu
+    if let Some(tray) = app.tray_by_id("main") {
+        tray.set_menu(Some(menu)).map_err(|e| e.to_string())?;
     }
 
     Ok("Menu status updated".to_string())
