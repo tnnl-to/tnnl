@@ -45,3 +45,5 @@ backend/coordination-server/.env
 
 # Archives
 *.tar.gz
+*.zip
+*-extracted/

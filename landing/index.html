@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tnnl.to - Remote Screen Access Made Simple</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Umami Analytics -->
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="a59b1ae5-ae1d-49c6-9614-60df9c6e766f"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav container">
+            <div class="nav__brand">
+                <h1 class="logo">tnnl.to</h1>
+            </div>
+            <ul class="nav__menu" id="navMenu">
+                <li class="nav__item"><a href="#features" class="nav__link">Features</a></li>
+                <li class="nav__item"><a href="#pricing" class="nav__link">Pricing</a></li>
+                <li class="nav__item"><a href="#download" class="nav__link">Download</a></li>
+            </ul>
+            <button class="nav__toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero__content">
+                <h1 class="hero__headline">Remote Screen Access Made Simple</h1>
+                <p class="hero__subheadline">Get an instant public URL to access your computer from anywhere. No VPN, no port forwarding, no network configuration required.</p>
+                <div class="hero__actions">
+                    <button class="btn btn--primary btn--lg" onclick="scrollToSection('download')">Download Now</button>
+                    <button class="btn btn--outline btn--lg" onclick="scrollToSection('how-it-works')">See How It Works</button>
+                </div>
+            </div>
+            <div class="hero__visual">
+                <div class="tunnel-visual">
+                    <div class="device device--desktop">
+                        <div class="device__screen"></div>
+                        <span class="device__label">Your Computer</span>
+                    </div>
+                    <div class="tunnel-connection">
+                        <div class="tunnel-line"></div>
+                        <span class="tunnel-url">wild-fox-1722.tnnl.to</span>
+                    </div>
+                    <div class="device device--mobile">
+                        <div class="device__screen"></div>
+                        <span class="device__label">Any Device</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Value Props -->
+    <section class="value-props">
+        <div class="container">
+            <div class="value-props__grid">
+                <div class="value-prop">
+                    <div class="value-prop__icon">⚡</div>
+                    <h3 class="value-prop__title">Zero Configuration</h3>
+                    <p class="value-prop__description">Works anywhere - corporate networks, NAT, restrictive firewalls</p>
+                </div>
+                <div class="value-prop">
+                    <div class="value-prop__icon">🚀</div>
+                    <h3 class="value-prop__title">Instant Access</h3>
+                    <p class="value-prop__description">Click Connect → get public URL in seconds</p>
+                </div>
+                <div class="value-prop">
+                    <div class="value-prop__icon">🔒</div>
+                    <h3 class="value-prop__title">Secure by Design</h3>
+                    <p class="value-prop__description">SSH tunneling + optional password protection</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <h2 class="section__title">How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step__number">1</div>
+                    <h3 class="step__title">Click Connect</h3>
+                    <p class="step__description">Click "Connect" in desktop app</p>
+                </div>
+                <div class="step">
+                    <div class="step__number">2</div>
+                    <h3 class="step__title">Get Tunnel</h3>
+                    <p class="step__description">Get assigned tunnel + subdomain</p>
+                </div>
+                <div class="step">
+                    <div class="step__number">3</div>
+                    <h3 class="step__title">SSH Established</h3>
+                    <p class="step__description">SSH tunnel established automatically</p>
+                </div>
+                <div class="step">
+                    <div class="step__number">4</div>
+                    <h3 class="step__title">Access Anywhere</h3>
+                    <p class="step__description">Open URL on any device → control your computer</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshot Section -->
+    <section class="screenshot-section">
+        <div class="container">
+            <h2 class="section__title">Simple Interface, Powerful Features</h2>
+            <p class="screenshot-section__subtitle">One click to connect. One URL to share.</p>
+            <div class="screenshot-section__image">
+                <img src="screenshot-raw.png" alt="tnnl desktop app showing connected tunnel with URL" class="app-screenshot">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section__title">Features</h2>
+            <div class="features__grid">
+                <div class="feature">
+                    <div class="feature__icon">🌐</div>
+                    <h3 class="feature__title">Web-based client</h3>
+                    <p class="feature__description">No software install for remote side</p>
+                </div>
+                <div class="feature">
+                    <div class="feature__icon">⚡</div>
+                    <h3 class="feature__title">Real-time streaming</h3>
+                    <p class="feature__description">10 FPS screen capture</p>
+                </div>
+                <div class="feature">
+                    <div class="feature__icon">🖱️</div>
+                    <h3 class="feature__title">Full control</h3>
+                    <p class="feature__description">Mouse/keyboard control</p>
+                </div>
+                <div class="feature">
+                    <div class="feature__icon">📁</div>
+                    <h3 class="feature__title">File transfer</h3>
+                    <p class="feature__description">Transfer files seamlessly</p>
+                </div>
+                <div class="feature">
+                    <div class="feature__icon">🔥</div>
+                    <h3 class="feature__title">Firewall bypass</h3>
+                    <p class="feature__description">Works behind firewalls/NAT</p>
+                </div>
+                <div class="feature">
+                    <div class="feature__icon">💻</div>
+                    <h3 class="feature__title">Cross-platform</h3>
+                    <p class="feature__description">macOS, Windows, Linux support</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <h2 class="section__title">Simple Pricing</h2>
+            <div class="pricing__grid">
+                <div class="pricing-card">
+                    <h3 class="pricing-card__title">Free</h3>
+                    <div class="pricing-card__price">
+                        <span class="price">$0</span>
+                        <span class="period">forever</span>
+                    </div>
+                    <ul class="pricing-card__features">
+                        <li>Random subdomain<br />(e.g., wild-fox-1722.tnnl.to)</li>
+                        <li>1 concurrent tunnel/connection</li>
+                        <li>Basic functionality</li>
+                    </ul>
+                    <button class="btn btn--outline btn--full-width btn--coming-soon" disabled>Free - Download to Start</button>
+                </div>
+                <div class="pricing-card pricing-card--featured">
+                    <h3 class="pricing-card__title">Custom Domain</h3>
+                    <div class="pricing-card__price">
+                        <span class="price">$0.99</span>
+                        <span class="period">/month</span>
+                    </div>
+                    <p class="pricing-card__yearly">or $9.99/year</p>
+                    <ul class="pricing-card__features">
+                        <li>Choose your own subdomain<br />(e.g., ninjas.tnnl.to)</li>
+                        <li>1 concurrent tunnel</li>
+                        <li>Priority support</li>
+                    </ul>
+                    <button class="btn btn--primary btn--full-width btn--coming-soon" disabled>Upgrade Plan</button>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="pricing-card__title">Additional Tunnels</h3>
+                    <div class="pricing-card__price">
+                        <span class="price">$0.99</span>
+                        <span class="period">/month each</span>
+                    </div>
+                    <ul class="pricing-card__features">
+                        <li>Multiple concurrent tunnels</li>
+                        <li>Custom subdomain for each</li>
+                        <li>Advanced features</li>
+                    </ul>
+                    <button class="btn btn--outline btn--full-width btn--coming-soon" disabled>Add More Tunnels</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download -->
+    <section class="download" id="download">
+        <div class="container">
+            <h2 class="section__title">Download tnnl</h2>
+            <p class="download__subtitle">Get started with tnnl on your platform</p>
+            <div class="download__grid">
+                <div class="download-card">
+                    <div class="download-card__icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h3 class="download-card__title">macOS</h3>
+                    <p class="download-card__version" id="macos-version">Loading...</p>
+                    <p class="download-card__requirements">macOS 10.14+</p>
+                    <button class="btn btn--primary btn--full-width download-btn" data-platform="macOS" id="macos-download">Download for Mac</button>
+                </div>
+                <div class="download-card">
+                    <div class="download-card__icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h3 class="download-card__title">Windows</h3>
+                    <p class="download-card__version" id="windows-version">Coming Soon</p>
+                    <p class="download-card__requirements">Windows 10+</p>
+                    <button class="btn btn--outline btn--full-width btn--coming-soon" id="windows-download" disabled>Download for Windows</button>
+                </div>
+                <div class="download-card">
+                    <div class="download-card__icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20.581 19.049c-.55-.446-.336-1.431-.907-1.917.553-3.365-.997-6.331-2.845-8.232-1.551-1.595-1.051-3.147-1.051-4.49 0-2.146-.881-4.41-3.55-4.41-2.853 0-3.635 2.38-3.663 3.738-.068 3.262.659 4.11-1.25 6.484-2.246 2.793-2.577 5.579-2.07 7.057-.237.276-.557.582-1.155.835-1.652.72-.441 1.925-.898 2.78-.13.243-.192.497-.192.74 0 .75.596 1.399 1.679 1.302 1.461-.13 2.809.905 5.901.905 3.201 0 5.14-.942 6.32-.942 1.425 0 1.973.591 1.973 1.382 0 1.065-1.407 1.645-2.661 1.645-1.049 0-1.996-.281-2.743-.795l-.27 1.683c.903.523 2.09.893 3.3.893 2.799 0 4.635-1.626 4.635-3.729 0-1.435-.849-2.35-1.553-2.929z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h3 class="download-card__title">Linux</h3>
+                    <p class="download-card__version" id="linux-version">Coming Soon</p>
+                    <p class="download-card__requirements">Ubuntu 18.04+</p>
+                    <button class="btn btn--outline btn--full-width btn--coming-soon" id="linux-download" disabled>Download for Linux</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <div class="footer__brand">
+                    <h3 class="logo">tnnl.to</h3>
+                    <p class="footer__tagline">Remote Screen Access Made Simple</p>
+                </div>
+                <div class="footer__links">
+                    <a href="privacy.html" class="footer__link">Privacy</a>
+                    <a href="terms.html" class="footer__link">Terms</a>
+                    <a href="mailto:help@tnnl.to" class="footer__link">Support</a>
+                    <a href="https://github.com/tnnl-co/tnnl" target="_blank" rel="noopener" class="footer__link">Documentation</a>
+                </div>
+            </div>
+            <div class="footer__bottom">
+                <p>&copy; 2025 tnnl.to. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -157,3 +157,136 @@ fn is_valid_subdomain(subdomain: &str) -> bool {
         && !subdomain.starts_with('-')
         && !subdomain.ends_with('-')
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_valid_subdomain() {
+        // Valid subdomains
+        assert!(is_valid_subdomain("abc"));
+        assert!(is_valid_subdomain("test-subdomain"));
+        assert!(is_valid_subdomain("abc123"));
+        assert!(is_valid_subdomain("happy-fox-1234"));
+
+        // Invalid - too short
+        assert!(!is_valid_subdomain("ab"));
+        assert!(!is_valid_subdomain("a"));
+
+        // Invalid - too long (> 63 chars)
+        assert!(!is_valid_subdomain(&"a".repeat(64)));
+
+        // Invalid - uppercase
+        assert!(!is_valid_subdomain("ABC"));
+        assert!(!is_valid_subdomain("Test"));
+
+        // Invalid - starts with hyphen
+        assert!(!is_valid_subdomain("-test"));
+
+        // Invalid - ends with hyphen
+        assert!(!is_valid_subdomain("test-"));
+
+        // Invalid - special characters
+        assert!(!is_valid_subdomain("test_subdomain"));
+        assert!(!is_valid_subdomain("test.subdomain"));
+        assert!(!is_valid_subdomain("test@subdomain"));
+    }
+
+    #[test]
+    fn test_generate_random_subdomain_format() {
+        let subdomain = generate_random_subdomain();
+
+        // Should be valid subdomain format
+        assert!(is_valid_subdomain(&subdomain));
+
+        // Should match pattern: adjective-noun-number
+        let parts: Vec<&str> = subdomain.split('-').collect();
+        assert_eq!(parts.len(), 3, "Subdomain should have 3 parts separated by hyphens");
+
+        // Third part should be a 4-digit number
+        let number = parts[2].parse::<u16>();
+        assert!(number.is_ok(), "Third part should be a number");
+        let num = number.unwrap();
+        assert!(num >= 1000 && num <= 9999, "Number should be between 1000-9999");
+    }
+
+    #[tokio::test]
+    async fn test_tunnel_manager_port_allocation() {
+        let manager = TunnelManager::new();
+        let user_id = Uuid::new_v4();
+
+        // Create first tunnel
+        let tunnel1 = manager.create_random_tunnel(user_id, None).await.unwrap();
+        assert_eq!(tunnel1.port, 10000);
+
+        // Create second tunnel
+        let tunnel2 = manager.create_random_tunnel(user_id, None).await.unwrap();
+        assert_eq!(tunnel2.port, 10001);
+
+        // Ports should increment
+        assert_ne!(tunnel1.port, tunnel2.port);
+    }
+
+    #[tokio::test]
+    async fn test_tunnel_manager_custom_subdomain() {
+        let manager = TunnelManager::new();
+        let user_id = Uuid::new_v4();
+
+        // Create tunnel with custom subdomain
+        let tunnel = manager
+            .create_custom_tunnel(user_id, "my-custom-tunnel".to_string(), None)
+            .await
+            .unwrap();
+
+        assert_eq!(tunnel.subdomain, "my-custom-tunnel");
+        assert!(tunnel.is_custom);
+
+        // Should fail to create duplicate subdomain
+        let result = manager
+            .create_custom_tunnel(user_id, "my-custom-tunnel".to_string(), None)
+            .await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("already in use"));
+    }
+
+    #[tokio::test]
+    async fn test_tunnel_manager_invalid_subdomain() {
+        let manager = TunnelManager::new();
+        let user_id = Uuid::new_v4();
+
+        // Should reject invalid subdomain
+        let result = manager
+            .create_custom_tunnel(user_id, "INVALID".to_string(), None)
+            .await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid subdomain"));
+    }
+
+    #[tokio::test]
+    async fn test_tunnel_manager_remove() {
+        let manager = TunnelManager::new();
+        let user_id = Uuid::new_v4();
+
+        // Create tunnel
+        let _tunnel = manager
+            .create_custom_tunnel(user_id, "test-tunnel".to_string(), None)
+            .await
+            .unwrap();
+
+        // Should be able to get it
+        assert!(manager.get_tunnel("test-tunnel").await.is_some());
+
+        // Remove tunnel
+        manager.remove_tunnel("test-tunnel").await.unwrap();
+
+        // Should no longer exist
+        assert!(manager.get_tunnel("test-tunnel").await.is_none());
+
+        // Removing again should fail
+        let result = manager.remove_tunnel("test-tunnel").await;
+        assert!(result.is_err());
+    }
+}

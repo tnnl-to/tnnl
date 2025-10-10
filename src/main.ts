@@ -77,9 +77,7 @@ function setLoading(btn: HTMLButtonElement, loading: boolean, text?: string) {
 }
 
 async function sendMagicLink(email: string): Promise<string> {
-  console.log('[WorkOS] Sending magic link to:', email);
   const authId = await invoke<string>('workos_send_magic_link', { email });
-  console.log('[WorkOS] Auth ID received:', authId);
   return authId;
 }
 
@@ -116,8 +114,6 @@ async function handleLogin(e: Event) {
 async function handleVerify(e: Event) {
   e.preventDefault();
   const code = codeInput.value.trim();
-
-  console.log('[Auth] Verify attempt - code:', code, 'authId:', pendingAuthId);
 
   if (!code) {
     showMessage('Please enter the verification code', 'error');
@@ -218,7 +214,6 @@ logoutBtn.addEventListener('click', handleLogout);
 
 function updateStatus(message: string) {
   statusEl.textContent = message;
-  console.log('[tnnl]', message);
 }
 
 async function updateStats() {
@@ -253,7 +248,7 @@ async function checkPermissions() {
 async function startCapture() {
   try {
     updateStatus('Starting screen capture...');
-    const result = await invoke<string>('start_screen_capture');
+    await invoke<string>('start_screen_capture');
 
     startBtn.disabled = true;
     stopBtn.disabled = false;
@@ -262,8 +257,6 @@ async function startCapture() {
     if (!statusInterval) {
       statusInterval = window.setInterval(updateStats, 1000);
     }
-
-    console.log(result);
   } catch (error) {
     updateStatus(`❌ Error: ${error}`);
     console.error('Failed to start capture:', error);
@@ -273,7 +266,7 @@ async function startCapture() {
 async function stopCapture() {
   try {
     updateStatus('Stopping screen capture...');
-    const result = await invoke<string>('stop_screen_capture');
+    await invoke<string>('stop_screen_capture');
 
     startBtn.disabled = false;
     stopBtn.disabled = true;
@@ -287,8 +280,6 @@ async function stopCapture() {
     if (statsEl) {
       statsEl.innerHTML = '<em>Not capturing</em>';
     }
-
-    console.log(result);
   } catch (error) {
     updateStatus(`❌ Error: ${error}`);
     console.error('Failed to stop capture:', error);
@@ -313,8 +304,6 @@ async function connectToTunnel() {
       accessToken: authToken,
       password: passwordParam
     });
-
-    console.log('[Tunnel] Connection initiated');
 
     // Poll for tunnel info
     let attempts = 0;
@@ -372,8 +361,6 @@ async function disconnectFromTunnel() {
     tunnelPasswordInput.disabled = false;
     tunnelPasswordInput.value = '';
     tunnelInfoEl.innerHTML = '<em>Not connected</em>';
-
-    console.log('[Tunnel] Disconnected successfully');
   } catch (error: any) {
     console.error('[Tunnel] Disconnect failed:', error);
     disconnectTunnelBtn.disabled = false;

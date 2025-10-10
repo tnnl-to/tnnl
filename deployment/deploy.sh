@@ -27,10 +27,12 @@ mkdir -p /opt/tnnl
 mkdir -p /var/lib/tnnl
 mkdir -p /etc/nginx/tunnels
 mkdir -p /etc/nginx/passwd
+mkdir -p /var/www/tnnl/landing
 chown tnnl:tnnl /opt/tnnl
 chown tnnl:tnnl /var/lib/tnnl
 chown www-data:www-data /etc/nginx/tunnels
 chown www-data:www-data /etc/nginx/passwd
+chown -R www-data:www-data /var/www/tnnl
 
 # 4. Copy binary and set permissions
 echo "[4/8] Installing coordination server binary..."
@@ -42,6 +44,32 @@ fi
 cp /root/coordination-server /opt/tnnl/
 chmod +x /opt/tnnl/coordination-server
 chown tnnl:tnnl /opt/tnnl/coordination-server
+
+# Copy landing page files
+echo "[4.5/8] Installing landing page..."
+if [ -d "/root/landing" ]; then
+    cp -r /root/landing/* /var/www/tnnl/landing/
+    chown -R www-data:www-data /var/www/tnnl/landing
+    echo "Landing page installed successfully"
+else
+    echo "Warning: /root/landing directory not found. Skipping landing page installation."
+    echo "Please upload landing page files to /root/landing/"
+fi
+
+# Copy client.html template
+echo "[4.6/8] Installing client.html template..."
+if [ -f "/root/client.html" ]; then
+    cp /root/client.html /opt/tnnl/
+    chown tnnl:tnnl /opt/tnnl/client.html
+    echo "Client template installed successfully"
+else
+    echo "Warning: /root/client.html not found. Tunnel subdomains will not have client interface."
+    echo "Please upload client.html to /root/"
+fi
+
+# Create /var/www/html if it doesn't exist
+mkdir -p /var/www/html
+chown -R www-data:www-data /var/www/html
 
 # 5. Install systemd service
 echo "[5/8] Installing systemd service..."
