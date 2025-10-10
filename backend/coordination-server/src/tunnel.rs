@@ -5,8 +5,8 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Tunnel {
-    #[allow(dead_code)]
     pub id: Uuid,
     pub subdomain: String,
     pub user_id: Uuid,
