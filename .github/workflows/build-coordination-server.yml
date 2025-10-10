@@ -7,12 +7,14 @@ on:
     paths:
       - 'backend/coordination-server/**'
       - 'client.html'
+      - '.github/workflows/build-coordination-server.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'backend/coordination-server/**'
       - 'client.html'
+      - '.github/workflows/build-coordination-server.yml'
   workflow_dispatch:
 
 jobs:
@@ -57,6 +59,8 @@ jobs:
         run: |
           cd backend/coordination-server
           cargo build --release
+        env:
+          RUSTFLAGS: ""
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
