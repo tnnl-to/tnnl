@@ -1,0 +1,19 @@
+# GitHub Sponsors configuration
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# GitHub Sponsors username (uncomment and replace with your username when ready)
+github: tnnl-to
+
+# Other supported platforms (uncomment and add your usernames as needed)
+# patreon: your-patreon-username
+# open_collective: your-opencollective-username
+# ko_fi: your-kofi-username
+# tidelift: npm/package-name
+# community_bridge: project-name
+# liberapay: your-liberapay-username
+# issuehunt: your-issuehunt-username
+# lfx_crowdfunding: project-name
+# polar: your-polar-username
+# buy_me_a_coffee: your-buymeacoffee-username
+# thanks_dev: your-thanksdev-username
+# custom: ["https://your-website.com/donate", "https://your-other-site.com/support"]

@@ -5,7 +5,7 @@
 
 // Mock fetch for GitHub API testing
 global.fetch = async (url, options = {}) => {
-  if (url.includes('api.github.com/repos/tnnl-co/tnnl/releases/latest')) {
+  if (url.includes('api.github.com/repos/tnnl-to/tnnl/releases/latest')) {
     return {
       ok: true,
       json: async () => ({
@@ -13,7 +13,7 @@ global.fetch = async (url, options = {}) => {
         assets: [
           {
             name: 'tnnl_0.1.0_aarch64-apple-darwin.dmg',
-            browser_download_url: 'https://github.com/tnnl-co/tnnl/releases/download/v0.1.0/tnnl_0.1.0_aarch64-apple-darwin.dmg'
+            browser_download_url: 'https://github.com/tnnl-to/tnnl/releases/download/v0.1.0/tnnl_0.1.0_aarch64-apple-darwin.dmg'
           }
         ]
       })
@@ -67,7 +67,7 @@ function assert(condition, message) {
 
 // Test 1: GitHub API URL is correctly formatted
 runTest('GitHub API URL should use correct repository', () => {
-  const expectedUrl = 'https://api.github.com/repos/tnnl-co/tnnl/releases/latest';
+  const expectedUrl = 'https://api.github.com/repos/tnnl-to/tnnl/releases/latest';
   // This would be tested in the actual fetch call
   assert(true, 'URL format is correct');
 });

@@ -35,7 +35,7 @@ If you want to keep the repo private, you can use a GitHub Personal Access Token
    - Go to Settings → Developer settings → Personal access tokens → Fine-grained tokens
    - Click "Generate new token"
    - Set permissions: Repository → Contents (Read-only)
-   - Scope it to just the `tnnl-co/tnnl` repository
+   - Scope it to just the `tnnl-to/tnnl` repository
 
 2. **Deploy token securely:**
 
@@ -70,7 +70,7 @@ If you want to keep the repo private, you can use a GitHub Personal Access Token
 ## Current State
 
 The landing page is configured to:
-- ✅ Fetch from `https://api.github.com/repos/tnnl-co/tnnl/releases/latest`
+- ✅ Fetch from `https://api.github.com/repos/tnnl-to/tnnl/releases/latest`
 - ✅ Support authentication via localStorage token
 - ✅ Gracefully fall back to "Coming Soon" if release not found
 - ✅ Automatically enable download buttons when assets are available

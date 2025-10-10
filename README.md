@@ -241,7 +241,7 @@ This is currently a personal project, but feedback and bug reports are welcome v
 
 For questions or issues:
 - **Email**: help@tnnl.to
-- **Documentation**: [GitHub Wiki](https://github.com/tnnl-co/tnnl)
+- **Documentation**: [GitHub Wiki](https://github.com/tnnl-to/tnnl)
 
 ---
 

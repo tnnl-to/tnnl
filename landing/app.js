@@ -6,7 +6,7 @@ async function fetchLatestRelease() {
         const token = localStorage.getItem('github_token');
         const headers = token ? { 'Authorization': `token ${token}` } : {};
 
-        const response = await fetch('https://api.github.com/repos/tnnl-co/tnnl/releases/latest', { headers });
+        const response = await fetch('https://api.github.com/repos/tnnl-to/tnnl/releases/latest', { headers });
         if (!response.ok) {
             throw new Error('Failed to fetch release');
         }
