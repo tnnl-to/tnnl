@@ -107,6 +107,14 @@ systemctl enable tnnl-coordination.service
 
 # 6. Configure Nginx
 echo "[6/8] Configuring Nginx..."
+
+# Add WebSocket upgrade map to main nginx.conf if not already present
+if ! grep -q "map \$http_upgrade \$connection_upgrade" /etc/nginx/nginx.conf; then
+    echo "Adding WebSocket upgrade map to nginx.conf..."
+    # Insert map directive in http block (before the last closing brace)
+    sed -i '/^http {/a\    # WebSocket upgrade support for tunnel subdomains\n    map $http_upgrade $connection_upgrade {\n        default upgrade;\n        '"'"''"'"' close;\n    }\n' /etc/nginx/nginx.conf
+fi
+
 cp /root/nginx-tnnl.conf /etc/nginx/sites-available/tnnl
 ln -sf /etc/nginx/sites-available/tnnl /etc/nginx/sites-enabled/tnnl
 rm -f /etc/nginx/sites-enabled/default

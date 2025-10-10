@@ -39,13 +39,9 @@ impl NginxManager {
 
         // Generate server block config with HTTP + HTTPS
         // Serves HTML for browser, proxies WebSocket for WS connections
+        // Note: map $http_upgrade $connection_upgrade must be in main nginx.conf http block
         let config = format!(
-            r#"map $http_upgrade $connection_upgrade {{
-    default upgrade;
-    '' close;
-}}
-
-server {{
+            r#"server {{
     listen 80;
     listen [::]:80;
     server_name {subdomain}.tnnl.to;
