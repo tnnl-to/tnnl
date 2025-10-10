@@ -1,14 +1,10 @@
-use cocoa::appkit::{NSApplication, NSRunningApplication};
 use cocoa::base::{id, nil};
-use cocoa::foundation::{NSArray, NSAutoreleasePool, NSProcessInfo, NSString};
+use cocoa::foundation::{NSAutoreleasePool, NSString};
 use objc::{class, msg_send, sel, sel_impl};
-use objc::runtime::Object;
-use std::os::raw::c_void;
 use core_graphics::window::CGWindowID;
-use core_graphics::display::{CGDisplay, CGDirectDisplayID};
-use core_foundation::base::{CFType, TCFType};
+use core_foundation::base::TCFType;
 use core_foundation::number::CFNumber;
-use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
+use core_foundation::dictionary::CFDictionary;
 use core_foundation::array::{CFArray, CFArrayRef};
 use core_foundation::string::CFString;
 

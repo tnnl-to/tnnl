@@ -1,3 +1,7 @@
+//! tnnl - Remote desktop application
+// Silence warnings from objc crate's old cfg attributes
+#![allow(unexpected_cfgs)]
+
 use tauri::{Manager, menu::{MenuBuilder, MenuItemBuilder}, tray::TrayIconBuilder};
 
 mod screen_capture;
@@ -221,7 +225,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 if let tauri::RunEvent::Ready = event {
-                    app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                    let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
                 }
             }
         });

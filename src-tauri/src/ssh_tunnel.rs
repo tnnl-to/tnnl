@@ -1,7 +1,7 @@
 // SSH tunnel management for establishing reverse tunnels to the server
 use anyhow::{anyhow, Result};
 use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tauri::{AppHandle, Manager};
@@ -108,7 +108,7 @@ impl SshTunnelManager {
                 // Verify the process is actually running
                 #[cfg(unix)]
                 {
-                    use nix::sys::signal::{kill, Signal};
+                    use nix::sys::signal::kill;
                     use nix::unistd::Pid;
 
                     let pid_obj = Pid::from_raw(pid as i32);

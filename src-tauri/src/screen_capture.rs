@@ -213,7 +213,7 @@ fn start_capture_loop(capturer: Arc<parking_lot::Mutex<Capturer>>) {
 
             // Capture a frame
             let frame_result = {
-                let mut cap = capturer.lock();
+                let cap = capturer.lock();
                 cap.get_next_frame()
             };
 

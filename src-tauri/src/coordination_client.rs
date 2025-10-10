@@ -200,9 +200,20 @@ impl CoordinationClient {
 
                                     println!("[Coordination] Tunnel URL: {}", tunnel_info.url);
 
+                                    // Start WebSocket server on port 9001 if not already running
+                                    let local_port = 9001;
+                                    println!("[Coordination] Starting WebSocket server on port {}...", local_port);
+                                    let ws_result = crate::websocket_server::start_server(local_port).await
+                                        .map_err(|e| e.to_string());
+                                    if let Err(error_msg) = ws_result {
+                                        eprintln!("[Coordination] Failed to start WebSocket server: {}", error_msg);
+                                        *status.write().await = ConnectionStatus::Error(format!("Failed to start WebSocket server: {}", error_msg));
+                                        continue;
+                                    }
+                                    println!("[Coordination] WebSocket server started on port {}", local_port);
+
                                     // Establish SSH tunnel
                                     let remote_port = tunnel_info.port;
-                                    let local_port = 9001; // WebSocket server port
 
                                     if let Err(e) = crate::ssh_tunnel::establish_ssh_tunnel(
                                         &app_handle_clone,

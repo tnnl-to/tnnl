@@ -3,7 +3,7 @@ use futures_util::{SinkExt, StreamExt};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tracing::{error, info, warn};
 use uuid::Uuid;
@@ -19,6 +19,7 @@ use db::DbPool;
 
 /// Represents a connected desktop app client
 struct Client {
+    #[allow(dead_code)]
     id: Uuid,
     user_id: Option<Uuid>,
     sender: tokio::sync::mpsc::UnboundedSender<Message>,

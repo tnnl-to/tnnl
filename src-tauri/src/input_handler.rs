@@ -1,11 +1,10 @@
 use cocoa::appkit::NSEvent;
-use cocoa::base::{id, nil};
+use cocoa::base::nil;
 use cocoa::foundation::{NSPoint, NSAutoreleasePool};
 use core_graphics::display::CGDisplay;
-use core_graphics::event::{CGEvent, CGEventTapLocation, CGEventType, CGMouseButton, ScrollEventUnit, CGKeyCode, EventField};
+use core_graphics::event::{CGEvent, CGEventTapLocation, CGEventType, CGMouseButton};
 use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
 use core_graphics::geometry::CGPoint;
-use objc::{msg_send, sel, sel_impl};
 
 /// Check if the app has Accessibility permissions on macOS
 #[cfg(target_os = "macos")]
