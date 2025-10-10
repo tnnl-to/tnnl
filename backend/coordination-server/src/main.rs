@@ -3,7 +3,7 @@ use futures_util::{SinkExt, StreamExt};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tracing::{error, info, warn};
 use uuid::Uuid;
@@ -19,7 +19,6 @@ use db::DbPool;
 
 /// Represents a connected desktop app client
 struct Client {
-    #[allow(dead_code)]
     id: Uuid,
     user_id: Option<Uuid>,
     sender: tokio::sync::mpsc::UnboundedSender<Message>,
@@ -248,25 +247,28 @@ async fn handle_message(client_id: Uuid, text: String, state: &Arc<AppState>) {
                 }
             };
 
-            // Store or update user in database
-            if let Err(e) = db::get_or_create_user(&state.db_pool, user_id, &email).await {
-                error!("Failed to store user: {}", e);
-                send_error(client_id, "Database error", state).await;
-                return;
-            }
+            // Store or update user in database and get actual user_id
+            let actual_user_id = match db::get_or_create_user(&state.db_pool, user_id, &email).await {
+                Ok(uid) => uid,
+                Err(e) => {
+                    error!("Failed to store user: {}", e);
+                    send_error(client_id, "Database error", state).await;
+                    return;
+                }
+            };
 
-            // Update client with user_id
+            // Update client with ACTUAL user_id from database
             {
                 let mut clients = state.clients.write().await;
                 if let Some(client) = clients.get_mut(&client_id) {
-                    client.user_id = Some(user_id);
+                    client.user_id = Some(actual_user_id);
                 }
             }
 
             // Send success response
             let response = serde_json::json!({
                 "type": "auth_success",
-                "user_id": user_id,
+                "user_id": actual_user_id,
                 "email": email
             });
 
@@ -274,7 +276,7 @@ async fn handle_message(client_id: Uuid, text: String, state: &Arc<AppState>) {
                 let _ = client.sender.send(Message::Text(response.to_string()));
             }
 
-            info!("Client {} authenticated as user {}", client_id, user_id);
+            info!("Client {} authenticated as user {}", client_id, actual_user_id);
         }
         Some("request_tunnel") => {
             // Handle tunnel request

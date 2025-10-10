@@ -21,7 +21,8 @@ pub async fn init_pool(database_url: &str) -> Result<DbPool> {
 }
 
 /// Database operations for users
-pub async fn get_or_create_user(pool: &DbPool, user_id: Uuid, email: &str) -> Result<()> {
+/// Returns the actual user_id from the database (which may differ from the provided user_id if email already exists)
+pub async fn get_or_create_user(pool: &DbPool, user_id: Uuid, email: &str) -> Result<Uuid> {
     let user_id_str = user_id.to_string();
 
     // Use INSERT OR IGNORE to handle both new and existing users
@@ -37,7 +38,16 @@ pub async fn get_or_create_user(pool: &DbPool, user_id: Uuid, email: &str) -> Re
     .execute(pool)
     .await?;
 
-    Ok(())
+    // Query to get the actual user_id from the database (might be different if email existed)
+    let row = sqlx::query("SELECT id FROM users WHERE email = $1")
+        .bind(email)
+        .fetch_one(pool)
+        .await?;
+
+    let actual_user_id_str: String = row.try_get("id")?;
+    let actual_user_id = Uuid::parse_str(&actual_user_id_str)?;
+
+    Ok(actual_user_id)
 }
 
 /// Database operations for tunnels
@@ -66,7 +76,6 @@ pub async fn create_tunnel_record(pool: &DbPool, tunnel: &Tunnel) -> Result<()> 
     Ok(())
 }
 
-#[allow(dead_code)]
 pub async fn get_tunnel_by_subdomain(pool: &DbPool, subdomain: &str) -> Result<Option<Tunnel>> {
     let row = sqlx::query(
         r#"
@@ -110,7 +119,6 @@ pub async fn delete_tunnel_record(pool: &DbPool, subdomain: &str) -> Result<()> 
     Ok(())
 }
 
-#[allow(dead_code)]
 pub async fn update_tunnel_last_connected(pool: &DbPool, subdomain: &str) -> Result<()> {
     sqlx::query(
         "UPDATE tunnels SET last_connected_at = CURRENT_TIMESTAMP WHERE subdomain = $1"
@@ -123,7 +131,6 @@ pub async fn update_tunnel_last_connected(pool: &DbPool, subdomain: &str) -> Res
 }
 
 /// Get all tunnels for a user
-#[allow(dead_code)]
 pub async fn get_user_tunnels(pool: &DbPool, user_id: Uuid) -> Result<Vec<Tunnel>> {
     let user_id_str = user_id.to_string();
 
