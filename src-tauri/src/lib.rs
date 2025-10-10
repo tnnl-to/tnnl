@@ -48,6 +48,7 @@ pub fn run() {
             disconnect_tunnel,
             is_tunnel_active,
             show_and_activate_window,
+            update_tray_menu_status,
         ])
         .setup(|app| {
             // Initialize input controller
@@ -80,8 +81,8 @@ pub fn run() {
             }
 
             // Build tray menu
-            let toggle_capture = MenuItemBuilder::with_id("toggle_capture", "⚫ Screen Capture").build(app)?;
-            let toggle_websocket = MenuItemBuilder::with_id("toggle_websocket", "⚫ WebSocket Server").build(app)?;
+            let toggle_capture = MenuItemBuilder::with_id("toggle_capture", "⚪ Screen Capture").build(app)?;
+            let toggle_websocket = MenuItemBuilder::with_id("toggle_websocket", "⚪ tnnl.to Tunnel").build(app)?;
             let show_settings = MenuItemBuilder::with_id("show_settings", "Show Settings").build(app)?;
             let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
 
@@ -515,4 +516,36 @@ async fn show_and_activate_window(app: tauri::AppHandle) -> Result<String, Strin
     } else {
         Err("Window not found".to_string())
     }
+}
+
+// Tray menu status update command
+#[tauri::command]
+async fn update_tray_menu_status(
+    app: tauri::AppHandle,
+    capture_active: bool,
+    tunnel_active: bool,
+) -> Result<String, String> {
+    use tauri::menu::MenuItemKind;
+
+    // Get the tray and menu
+    let tray = app.tray_by_id("main").ok_or("Tray not found")?;
+    let menu = tray.menu().ok_or("Menu not found")?;
+
+    // Update screen capture status
+    let capture_icon = if capture_active { "🟢" } else { "⚪" };
+    let capture_text = format!("{} Screen Capture", capture_icon);
+
+    if let Some(MenuItemKind::MenuItem(item)) = menu.get("toggle_capture") {
+        item.set_text(capture_text).map_err(|e| e.to_string())?;
+    }
+
+    // Update tunnel status
+    let tunnel_icon = if tunnel_active { "🟢" } else { "⚪" };
+    let tunnel_text = format!("{} tnnl.to Tunnel", tunnel_icon);
+
+    if let Some(MenuItemKind::MenuItem(item)) = menu.get("toggle_websocket") {
+        item.set_text(tunnel_text).map_err(|e| e.to_string())?;
+    }
+
+    Ok("Menu status updated".to_string())
 }

@@ -404,8 +404,13 @@ async function updateTunnelInfo() {
 }
 
 async function syncUIState() {
+  let captureActive = false;
+  let tunnelActive = false;
+
   try {
     const status = await invoke<CaptureStatus>('get_capture_status');
+    captureActive = status.is_capturing;
+
     if (status.is_capturing) {
       startBtn.disabled = true;
       stopBtn.disabled = false;
@@ -424,9 +429,24 @@ async function syncUIState() {
 
   // Check tunnel status
   try {
-    await updateTunnelInfo();
+    const tunnelInfo = await invoke<TunnelInfo | null>('get_tunnel_info');
+    tunnelActive = tunnelInfo !== null;
+
+    if (tunnelInfo) {
+      await updateTunnelInfo();
+    }
   } catch (error) {
     console.error('Failed to check tunnel status:', error);
+  }
+
+  // Update tray menu status
+  try {
+    await invoke('update_tray_menu_status', {
+      captureActive,
+      tunnelActive
+    });
+  } catch (error) {
+    console.error('Failed to update tray menu:', error);
   }
 }
 
