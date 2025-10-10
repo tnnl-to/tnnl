@@ -1,0 +1,26 @@
+[Unit]
+Description=tnnl Coordination Server
+After=network.target
+
+[Service]
+Type=simple
+User=tnnl
+WorkingDirectory=/opt/tnnl
+ExecStart=/opt/tnnl/coordination-server
+Restart=always
+RestartSec=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tnnl-coordination
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/tnnl
+
+[Install]
+WantedBy=multi-user.target

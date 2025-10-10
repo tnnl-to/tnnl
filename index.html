@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tnnl</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      background: #000000;
+      min-height: 100vh;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    #app {
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* Login Screen */
+    #login-screen {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 48px 40px;
+      border: 1px solid #333;
+      animation: fadeIn 0.4s ease-out;
+      max-width: 520px;
+      margin: auto;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo img {
+      width: 180px;
+      height: auto;
+      margin-bottom: 12px;
+    }
+
+    .logo p {
+      color: #6b7280;
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #d1d5db;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 14px;
+      border: 1px solid #444;
+      border-radius: 8px;
+      outline: none;
+      transition: all 0.15s;
+      font-family: inherit;
+      background: #000;
+      color: #fff;
+    }
+
+    input:focus {
+      border-color: #666;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+
+    input:disabled {
+      background: #111;
+      cursor: not-allowed;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: #000;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #e5e7eb;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #222;
+      color: #d1d5db;
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #333;
+    }
+
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      border: 1px solid #fecaca;
+    }
+
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      border: 1px solid #a7f3d0;
+    }
+
+    /* Main App Screen */
+    #main-screen {
+      display: none;
+      background: #000;
+      padding: 24px;
+      animation: fadeIn 0.4s ease-out;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #333;
+      position: relative;
+    }
+
+    .header h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+
+    .header img {
+      height: 28px;
+      width: auto;
+    }
+
+    .user-info {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .status-card {
+      background: #1a1a1a;
+      color: #ffffff;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid #333;
+    }
+
+    .controls {
+      display: grid;
+      gap: 16px;
+    }
+
+    .control-group {
+      background: #1a1a1a;
+      padding: 18px;
+      border-radius: 10px;
+      border: 1px solid #333;
+    }
+
+    .control-group h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .control-buttons button {
+      flex: 1;
+      padding: 9px;
+      font-size: 13px;
+    }
+
+    .info-box {
+      background: #000;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.5;
+      border: 1px solid #333;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Login Screen -->
+    <div id="login-screen">
+      <div class="logo">
+        <img src="/logo.png" alt="tnnl">
+        <p>Remote Desktop Access</p>
+      </div>
+
+      <form id="login-form">
+        <div class="input-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="you@example.com" required>
+        </div>
+        <button type="submit" class="btn-primary" id="login-btn">
+          Sign In
+        </button>
+      </form>
+
+      <form id="verify-form" class="hidden">
+        <div class="input-group">
+          <label for="code">Verification Code</label>
+          <input type="text" id="code" placeholder="Enter 6-digit code" maxlength="6" required>
+        </div>
+        <button type="submit" class="btn-primary" id="verify-btn">
+          Verify Code
+        </button>
+        <button type="button" class="btn-secondary" id="back-btn">
+          Back
+        </button>
+      </form>
+
+      <div id="auth-message"></div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="main-screen">
+      <div class="header">
+        <div>
+          <img src="/logo.png" alt="tnnl">
+          <div class="user-info" id="user-email"></div>
+        </div>
+        <button type="button" class="btn-secondary" id="logout-btn" style="width: auto; padding: 9px 16px; margin-top: 0;">
+          Sign Out
+        </button>
+      </div>
+
+      <div class="status-card" id="status">
+        Initializing...
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <h3>Screen Capture</h3>
+          <div class="control-buttons">
+            <button id="startCapture" class="btn-primary">Start</button>
+            <button id="stopCapture" class="btn-primary" disabled>Stop</button>
+          </div>
+          <div class="info-box" id="stats">
+            <em>Not capturing</em>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>tnnl.to Tunnel</h3>
+          <div class="input-group">
+            <label for="tunnel-password">Password (Optional)</label>
+            <div style="position: relative;">
+              <input type="password" id="tunnel-password" placeholder="Leave empty for no password" style="padding-right: 60px;">
+              <button type="button" id="toggle-password" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px 8px; color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; width: auto !important; max-width: 50px;" title="Show password">
+                Show
+              </button>
+            </div>
+          </div>
+          <button id="connectTunnel" class="btn-primary">Connect to tnnl.to</button>
+          <div class="info-box" id="tunnelInfo">
+            <em>Not connected</em>
+          </div>
+          <p style="font-size: 12px; color: #9ca3af; margin-top: 12px;">
+            <em>Custom subdomain: Coming Soon</em>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

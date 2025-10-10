@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>tnnl - Remote Screen</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+      touch-action: pan-y;
+    }
+
+    #container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #status {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      transition: opacity 0.3s;
+    }
+
+    #status.fade {
+      opacity: 0.3;
+    }
+
+    /* Main viewport - flexible to fill remaining space */
+    #screen {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      touch-action: none; /* Prevent default touch behaviors */
+    }
+
+    #frame {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+
+    #frame.visible {
+      display: block;
+    }
+
+    #connect {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+    }
+
+    #connect input {
+      width: 280px;
+      padding: 12px;
+      font-size: 14px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #1e1e1e;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    #connect button {
+      width: 280px;
+      padding: 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      background: #4A90E2;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    #connect button:active {
+      background: #357ABD;
+    }
+
+    /* Hidden keyboard input for passthrough */
+    #keyboardInput {
+      -webkit-appearance: none;
+      appearance: none;
+      font-size: 16px; /* Prevents iOS auto-zoom on focus */
+      border: none;
+      outline: none;
+      background: transparent;
+      color: transparent;
+      caret-color: transparent;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* Toolbar Container - fixed height at bottom */
+    #toolbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+      border-top: 1px solid #333;
+      z-index: 200;
+    }
+
+    /* Toggle buttons bar */
+    #toggleBar {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border-bottom: 1px solid #222;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 10px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #999;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .toggle-btn:active {
+      background: #1a1a1a;
+      transform: scale(0.95);
+    }
+
+    .toggle-btn.active {
+      background: #4A90E2;
+      color: #fff;
+      border-color: #4A90E2;
+    }
+
+    /* Skeleton loader for toggle bar */
+    #toggleBarSkeleton {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border-bottom: 1px solid #222;
+    }
+
+    #toggleBarSkeleton.hidden {
+      display: none;
+    }
+
+    .skeleton-btn {
+      flex: 1;
+      height: 38px;
+      background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+      background-size: 200% 100%;
+      border-radius: 6px;
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    #toggleBar.hidden {
+      display: none;
+    }
+
+    /* App Dock */
+    #appDock {
+      max-height: 25vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    #appDock.collapsed {
+      max-height: 0;
+    }
+
+    #dockHeader {
+      padding: 12px 15px;
+      background: rgba(0, 0, 0, 0.5);
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #dockTitle {
+      font-size: 13px;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #currentApp {
+      font-size: 12px;
+      color: #4A90E2;
+      font-weight: 500;
+    }
+
+    #appList {
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #appList::-webkit-scrollbar {
+      display: none;
+    }
+
+    .app-icon {
+      flex-shrink: 0;
+      width: 64px;
+      height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: all 0.2s;
+    }
+
+    .app-icon:active {
+      transform: scale(0.9);
+    }
+
+    .app-icon.active {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    .app-icon img {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      margin-bottom: 4px;
+    }
+
+    .app-icon.active img {
+      box-shadow: 0 0 0 3px #4A90E2, 0 2px 12px rgba(74, 144, 226, 0.5);
+    }
+
+    .app-name {
+      font-size: 9px;
+      color: #999;
+      text-align: center;
+      max-width: 64px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-icon.active .app-name {
+      color: #4A90E2;
+      font-weight: 600;
+    }
+
+    /* Keys panel (navigation) */
+    #keys {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 8px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      transition: max-height 0.3s ease;
+      max-height: 200px;
+      overflow: hidden;
+    }
+
+    #keys.collapsed {
+      max-height: 0;
+      padding: 0;
+    }
+
+    /* Shortcuts panel (actions) */
+    #shortcuts {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      transition: max-height 0.3s ease;
+      max-height: 100px;
+      overflow: hidden;
+    }
+
+    #shortcuts.collapsed {
+      max-height: 0;
+      padding: 0;
+    }
+
+    .shortcut-btn {
+      padding: 12px 8px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .shortcut-btn:active {
+      background: #4A90E2;
+      transform: scale(0.95);
+    }
+
+    .shortcut-btn.active {
+      background: #4A90E2;
+      border-color: #4A90E2;
+    }
+
+    .shortcut-btn .key {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .shortcut-btn .label {
+      font-size: 9px;
+      color: #999;
+    }
+
+
+    #stats {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      z-index: 100;
+      font-family: monospace;
+    }
+
+    #loadingApps {
+      color: #666;
+      font-size: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .error {
+      color: #E74C3C;
+    }
+
+    .success {
+      color: #2ECC71;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="status">Not connected</div>
+
+    <div id="connect">
+      <h2 style="margin-bottom: 20px;">tnnl Client</h2>
+      <input type="text" id="wsUrl" placeholder="ws://192.168.1.100:9001" />
+      <br>
+      <button id="connectBtn">Connect</button>
+    </div>
+
+    <div id="screen">
+      <img id="frame" alt="Remote screen">
+    </div>
+
+    <!-- Toolbar at bottom with toggles and panels -->
+    <div id="toolbar">
+      <!-- Skeleton loader (shown while connecting) -->
+      <div id="toggleBarSkeleton">
+        <div class="skeleton-btn"></div>
+        <div class="skeleton-btn"></div>
+        <div class="skeleton-btn"></div>
+      </div>
+
+      <!-- Toggle buttons bar (hidden until connected) -->
+      <div id="toggleBar" class="hidden">
+        <button class="toggle-btn" id="appsToggle">📱 Apps</button>
+        <button class="toggle-btn" id="keysToggle">⌨️ Keys</button>
+        <button class="toggle-btn" id="shortcutsToggle">⌘ Shortcuts</button>
+      </div>
+
+      <!-- Keys panel (navigation with modifiers) -->
+      <div id="keys" class="collapsed">
+        <!-- Row 1 -->
+        <button class="shortcut-btn modifier-btn" data-modifier="cmd">
+          <div class="key">⌘</div>
+          <div class="label">Cmd</div>
+        </button>
+        <button class="shortcut-btn modifier-btn" data-modifier="option">
+          <div class="key">⌥</div>
+          <div class="label">Option</div>
+        </button>
+        <button class="shortcut-btn modifier-btn" data-modifier="ctrl">
+          <div class="key">⌃</div>
+          <div class="label">Ctrl</div>
+        </button>
+        <button class="shortcut-btn modifier-btn" data-modifier="shift">
+          <div class="key">⇧</div>
+          <div class="label">Shift</div>
+        </button>
+        <button class="shortcut-btn" data-key="tab">
+          <div class="key">⇥</div>
+          <div class="label">Tab</div>
+        </button>
+
+        <!-- Row 2 -->
+        <button class="shortcut-btn" data-key="up">
+          <div class="key">↑</div>
+          <div class="label">Up</div>
+        </button>
+        <button class="shortcut-btn" data-key="down">
+          <div class="key">↓</div>
+          <div class="label">Down</div>
+        </button>
+        <button class="shortcut-btn" data-key="left">
+          <div class="key">←</div>
+          <div class="label">Left</div>
+        </button>
+        <button class="shortcut-btn" data-key="right">
+          <div class="key">→</div>
+          <div class="label">Right</div>
+        </button>
+        <button class="shortcut-btn" data-key="escape">
+          <div class="key">⎋</div>
+          <div class="label">Esc</div>
+        </button>
+      </div>
+
+      <!-- Shortcuts panel (common actions) -->
+      <div id="shortcuts" class="collapsed">
+        <button class="shortcut-btn" data-action="cmd-backtick">
+          <div class="key">⌘`</div>
+          <div class="label">Windows</div>
+        </button>
+        <button class="shortcut-btn" data-action="cmd-tab">
+          <div class="key">⌘⇥</div>
+          <div class="label">Apps</div>
+        </button>
+        <button class="shortcut-btn" data-action="enter">
+          <div class="key">↵</div>
+          <div class="label">Enter</div>
+        </button>
+        <button class="shortcut-btn" data-action="escape">
+          <div class="key">⎋</div>
+          <div class="label">Escape</div>
+        </button>
+        <button class="shortcut-btn" data-action="tab">
+          <div class="key">⇥</div>
+          <div class="label">Tab</div>
+        </button>
+        <button class="shortcut-btn" data-action="cmd-w">
+          <div class="key">⌘W</div>
+          <div class="label">Close</div>
+        </button>
+        <button class="shortcut-btn" data-action="cmd-r">
+          <div class="key">⌘R</div>
+          <div class="label">Refresh</div>
+        </button>
+        <button class="shortcut-btn" data-action="cmd-t">
+          <div class="key">⌘T</div>
+          <div class="label">New Tab</div>
+        </button>
+        <button class="shortcut-btn" data-action="cmd-delete">
+          <div class="key">⌘⌫</div>
+          <div class="label">Delete</div>
+        </button>
+        <button class="shortcut-btn" data-action="cmd-q">
+          <div class="key">⌘Q</div>
+          <div class="label">Quit</div>
+        </button>
+      </div>
+
+      <!-- App Dock panel -->
+      <div id="appDock" class="collapsed">
+        <div id="dockHeader">
+          <span id="dockTitle">Applications</span>
+          <span id="currentApp">—</span>
+        </div>
+        <div id="appList">
+          <div id="loadingApps">Loading apps...</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="stats" class="hidden">
+      FPS: <span id="fps">0</span> |
+      Frames: <span id="frameCount">0</span>
+    </div>
+
+    <!-- Hidden input for keyboard passthrough -->
+    <input type="text" id="keyboardInput"
+           autocapitalize="off"
+           autocorrect="off"
+           autocomplete="off"
+           spellcheck="false"
+           style="position: absolute; left: -9999px; opacity: 0;" />
+  </div>
+
+  <script>
+    // DOM elements
+    const statusEl = document.getElementById('status');
+    const connectEl = document.getElementById('connect');
+    const wsUrlInput = document.getElementById('wsUrl');
+    const connectBtn = document.getElementById('connectBtn');
+    const frameImg = document.getElementById('frame');
+    const statsEl = document.getElementById('stats');
+    const fpsEl = document.getElementById('fps');
+    const frameCountEl = document.getElementById('frameCount');
+    const toolbarEl = document.getElementById('toolbar');
+    const appDockEl = document.getElementById('appDock');
+    const appListEl = document.getElementById('appList');
+    const currentAppEl = document.getElementById('currentApp');
+    const appsToggleEl = document.getElementById('appsToggle');
+    const keysToggleEl = document.getElementById('keysToggle');
+    const shortcutsToggleEl = document.getElementById('shortcutsToggle');
+    const keysEl = document.getElementById('keys');
+    const shortcutsEl = document.getElementById('shortcuts');
+    const keyboardInputEl = document.getElementById('keyboardInput');
+    const toggleBarEl = document.getElementById('toggleBar');
+    const toggleBarSkeletonEl = document.getElementById('toggleBarSkeleton');
+
+    // State
+    let ws = null;
+    let frameCount = 0;
+    let lastFrameTime = 0;
+    let fps = 0;
+    let fpsFrames = 0;
+    let fpsLastTime = Date.now();
+    let apps = [];
+    let currentAppBundleId = null;
+
+    // Load saved URL
+    const savedUrl = localStorage.getItem('tnnl_ws_url');
+    if (savedUrl) {
+      wsUrlInput.value = savedUrl;
+    }
+
+    // Update status
+    function setStatus(message, type = 'normal') {
+      statusEl.textContent = message;
+      statusEl.className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+      console.log('[tnnl]', message);
+    }
+
+    // Calculate FPS
+    function updateFPS() {
+      fpsFrames++;
+      const now = Date.now();
+      const elapsed = now - fpsLastTime;
+
+      if (elapsed >= 1000) {
+        fps = Math.round((fpsFrames * 1000) / elapsed);
+        fpsFrames = 0;
+        fpsLastTime = now;
+
+        if (fpsEl) {
+          fpsEl.textContent = fps;
+        }
+      }
+    }
+
+    // Render app icons in the dock
+    function renderAppDock(appsList) {
+      apps = appsList;
+      appListEl.innerHTML = '';
+
+      if (!apps || apps.length === 0) {
+        appListEl.innerHTML = '<div id="loadingApps">No apps available</div>';
+        return;
+      }
+
+      apps.forEach(app => {
+        const appIcon = document.createElement('div');
+        appIcon.className = 'app-icon';
+        appIcon.dataset.bundleId = app.bundle_id;
+
+        if (app.is_active) {
+          appIcon.classList.add('active');
+          currentAppBundleId = app.bundle_id;
+          currentAppEl.textContent = app.app_name;
+        }
+
+        const img = document.createElement('img');
+        if (app.icon_base64) {
+          img.src = 'data:image/png;base64,' + app.icon_base64;
+        } else {
+          // Fallback icon
+          img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect fill="%23333" width="48" height="48" rx="8"/></svg>';
+        }
+        img.alt = app.app_name;
+
+        const name = document.createElement('div');
+        name.className = 'app-name';
+        name.textContent = app.app_name;
+
+        appIcon.appendChild(img);
+        appIcon.appendChild(name);
+        appIcon.addEventListener('click', () => switchApp(app.bundle_id));
+
+        appListEl.appendChild(appIcon);
+      });
+    }
+
+    // Switch to a different app
+    function switchApp(bundleId) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.error('WebSocket not connected');
+        return;
+      }
+
+      // Send app switch request to server
+      ws.send(JSON.stringify({
+        type: 'switch_app',
+        bundle_id: bundleId
+      }));
+
+      // Update UI optimistically
+      currentAppBundleId = bundleId;
+      document.querySelectorAll('.app-icon').forEach(icon => {
+        if (icon.dataset.bundleId === bundleId) {
+          icon.classList.add('active');
+          const app = apps.find(a => a.bundle_id === bundleId);
+          if (app) {
+            currentAppEl.textContent = app.app_name;
+          }
+        } else {
+          icon.classList.remove('active');
+        }
+      });
+
+      setStatus(`Switching to app...`, 'success');
+      setTimeout(() => statusEl.classList.add('fade'), 1000);
+    }
+
+    // Handle incoming messages
+    function handleMessage(data) {
+      console.log('[tnnl client] Received message:', data);
+
+      try {
+        const message = JSON.parse(data);
+        console.log('[tnnl client] Parsed message:', message);
+
+        switch (message.type) {
+          case 'welcome':
+            console.log('Server welcome:', message.message);
+            // Request app list
+            console.log('[tnnl client] Requesting app list...');
+            ws.send(JSON.stringify({ type: 'get_apps' }));
+            // Send client screen dimensions
+            ws.send(JSON.stringify({
+              type: 'client_dimensions',
+              width: window.screen.width,
+              height: window.screen.height
+            }));
+            break;
+
+          case 'apps':
+            // Received list of running apps
+            console.log('[tnnl client] Received apps:', message.apps);
+            renderAppDock(message.apps);
+            // Hide skeleton, show real buttons
+            toggleBarSkeletonEl.classList.add('hidden');
+            toggleBarEl.classList.remove('hidden');
+            console.log('[tnnl client] Toolbar should now be visible');
+            break;
+
+          case 'focus_change':
+            // Foreground app changed on server
+            if (message.app) {
+              currentAppBundleId = message.app.bundle_id;
+              currentAppEl.textContent = message.app.app_name;
+
+              // Update dock UI
+              document.querySelectorAll('.app-icon').forEach(icon => {
+                if (icon.dataset.bundleId === message.app.bundle_id) {
+                  icon.classList.add('active');
+                } else {
+                  icon.classList.remove('active');
+                }
+              });
+            }
+            break;
+
+          default:
+            console.log('Unknown message type:', message.type);
+        }
+      } catch (e) {
+        console.error('Failed to parse message:', e);
+      }
+    }
+
+    // Connect to WebSocket server
+    function connect() {
+      const url = wsUrlInput.value.trim();
+      if (!url) {
+        setStatus('Please enter WebSocket URL', 'error');
+        return;
+      }
+
+      // Save URL for next time
+      localStorage.setItem('tnnl_ws_url', url);
+
+      setStatus('Connecting...');
+      connectBtn.disabled = true;
+
+      try {
+        ws = new WebSocket(url);
+        ws.binaryType = 'arraybuffer';
+
+        ws.onopen = () => {
+          setStatus('Connected', 'success');
+          connectEl.classList.add('hidden');
+          statsEl.classList.remove('hidden');
+          frameCount = 0;
+          fpsFrames = 0;
+          fpsLastTime = Date.now();
+
+          // Request app list immediately on connection
+          setTimeout(() => {
+            console.log('[tnnl client] Connection established, requesting apps...');
+            ws.send(JSON.stringify({ type: 'get_apps' }));
+            ws.send(JSON.stringify({
+              type: 'client_dimensions',
+              width: window.screen.width,
+              height: window.screen.height
+            }));
+          }, 100);
+        };
+
+        ws.onmessage = (event) => {
+          if (typeof event.data === 'string') {
+            // Text message (JSON commands, welcome, etc.)
+            handleMessage(event.data);
+          } else {
+            // Binary message (JPEG frame)
+            frameCount++;
+            updateFPS();
+
+            // Convert ArrayBuffer to Blob and display
+            const blob = new Blob([event.data], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+
+            // Clean up old URL
+            if (frameImg.src && frameImg.src.startsWith('blob:')) {
+              URL.revokeObjectURL(frameImg.src);
+            }
+
+            frameImg.src = url;
+            frameImg.classList.add('visible');
+
+            if (frameCountEl) {
+              frameCountEl.textContent = frameCount;
+            }
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setStatus('Connection error', 'error');
+        };
+
+        ws.onclose = () => {
+          setStatus('Disconnected', 'error');
+          connectBtn.disabled = false;
+          connectEl.classList.remove('hidden');
+          statsEl.classList.add('hidden');
+          frameImg.classList.remove('visible');
+
+          // Show skeleton, hide real buttons
+          toggleBarSkeletonEl.classList.remove('hidden');
+          toggleBarEl.classList.add('hidden');
+
+          ws = null;
+        };
+      } catch (error) {
+        console.error('Failed to connect:', error);
+        setStatus('Connection failed: ' + error.message, 'error');
+        connectBtn.disabled = false;
+      }
+    }
+
+    // Event listeners
+    connectBtn.addEventListener('click', connect);
+    wsUrlInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        connect();
+      }
+    });
+
+    // Auto-connect if URL is saved and we're not on localhost
+    // (useful for bookmarking on phone)
+    if (savedUrl && !location.hostname.includes('localhost')) {
+      setTimeout(connect, 500);
+    }
+
+    // Touch input handling for mouse control
+    const screenEl = document.getElementById('screen');
+    let lastTouchTime = 0;
+    let lastTouchPos = null;
+
+    screenEl.addEventListener('touchstart', (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      const touch = e.touches[0];
+      const rect = screenEl.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+
+      lastTouchPos = { x, y };
+      lastTouchTime = Date.now();
+
+      // Send mouse move
+      ws.send(JSON.stringify({
+        type: 'mouse_move',
+        x: x,
+        y: y,
+        client_width: rect.width,
+        client_height: rect.height
+      }));
+
+      e.preventDefault();
+    });
+
+    screenEl.addEventListener('touchmove', (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      const touch = e.touches[0];
+      const rect = screenEl.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+
+      lastTouchPos = { x, y };
+
+      // Send mouse move
+      ws.send(JSON.stringify({
+        type: 'mouse_move',
+        x: x,
+        y: y,
+        client_width: rect.width,
+        client_height: rect.height
+      }));
+
+      e.preventDefault();
+    });
+
+    screenEl.addEventListener('touchend', (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      const now = Date.now();
+      const timeSinceStart = now - lastTouchTime;
+
+      // If touch was brief (< 200ms), treat as click
+      if (timeSinceStart < 200 && lastTouchPos) {
+        ws.send(JSON.stringify({
+          type: 'mouse_click',
+          button: 'left'
+        }));
+      }
+
+      lastTouchPos = null;
+      e.preventDefault();
+    });
+
+    // Two-finger scroll
+    let lastTwoFingerDistance = 0;
+    let lastScrollPos = null;
+
+    screenEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        lastScrollPos = {
+          y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+        };
+      }
+    });
+
+    screenEl.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && lastScrollPos) {
+        const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const deltaY = currentY - lastScrollPos.y;
+
+        if (Math.abs(deltaY) > 5) {
+          ws.send(JSON.stringify({
+            type: 'mouse_scroll',
+            delta_x: 0,
+            delta_y: Math.round(deltaY)
+          }));
+
+          lastScrollPos.y = currentY;
+        }
+
+        e.preventDefault();
+      }
+    });
+
+    screenEl.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        lastScrollPos = null;
+      }
+    });
+
+    // Prevent zoom gestures on mobile
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('touchmove', (e) => {
+      if (e.scale !== 1) e.preventDefault();
+    }, { passive: false });
+
+    // Toggle panel handlers
+    appsToggleEl.addEventListener('click', () => {
+      const isCollapsed = appDockEl.classList.contains('collapsed');
+
+      if (isCollapsed) {
+        // Show apps, hide others
+        appDockEl.classList.remove('collapsed');
+        keysEl.classList.add('collapsed');
+        shortcutsEl.classList.add('collapsed');
+        appsToggleEl.classList.add('active');
+        keysToggleEl.classList.remove('active');
+        shortcutsToggleEl.classList.remove('active');
+
+        // Hide keyboard when switching away from Keys
+        keyboardInputEl.blur();
+      } else {
+        // Hide apps
+        appDockEl.classList.add('collapsed');
+        appsToggleEl.classList.remove('active');
+      }
+    });
+
+    keysToggleEl.addEventListener('click', () => {
+      const isCollapsed = keysEl.classList.contains('collapsed');
+
+      if (isCollapsed) {
+        // Show keys, hide others
+        keysEl.classList.remove('collapsed');
+        appDockEl.classList.add('collapsed');
+        shortcutsEl.classList.add('collapsed');
+        keysToggleEl.classList.add('active');
+        appsToggleEl.classList.remove('active');
+        shortcutsToggleEl.classList.remove('active');
+
+        // Auto-open iOS keyboard
+        keyboardInputEl.style.position = 'fixed';
+        keyboardInputEl.style.bottom = '0';
+        keyboardInputEl.style.left = '0';
+        keyboardInputEl.style.width = '100%';
+        keyboardInputEl.style.opacity = '1';
+        keyboardInputEl.focus();
+      } else {
+        // Hide keys
+        keysEl.classList.add('collapsed');
+        keysToggleEl.classList.remove('active');
+
+        // Hide keyboard
+        keyboardInputEl.blur();
+      }
+    });
+
+    shortcutsToggleEl.addEventListener('click', () => {
+      const isCollapsed = shortcutsEl.classList.contains('collapsed');
+
+      if (isCollapsed) {
+        // Show shortcuts, hide others
+        shortcutsEl.classList.remove('collapsed');
+        appDockEl.classList.add('collapsed');
+        keysEl.classList.add('collapsed');
+        shortcutsToggleEl.classList.add('active');
+        appsToggleEl.classList.remove('active');
+        keysToggleEl.classList.remove('active');
+
+        // Hide keyboard when switching away from Keys
+        keyboardInputEl.blur();
+      } else {
+        // Hide shortcuts
+        shortcutsEl.classList.add('collapsed');
+        shortcutsToggleEl.classList.remove('active');
+      }
+    });
+
+    // Modifier key state
+    const modifiers = {
+      cmd: false,
+      option: false,
+      ctrl: false,
+      shift: false
+    };
+
+    // Clear all modifiers
+    function clearModifiers() {
+      modifiers.cmd = false;
+      modifiers.option = false;
+      modifiers.ctrl = false;
+      modifiers.shift = false;
+      document.querySelectorAll('.modifier-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+    }
+
+    // Modifier button handlers
+    document.querySelectorAll('.modifier-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent focus change
+        const modifier = btn.dataset.modifier;
+        modifiers[modifier] = !modifiers[modifier];
+        btn.classList.toggle('active', modifiers[modifier]);
+
+        // Keep keyboard focused
+        setTimeout(() => {
+          if (!keysEl.classList.contains('collapsed')) {
+            keyboardInputEl.focus();
+          }
+        }, 0);
+      });
+    });
+
+    // Key button handlers (for Keys panel buttons with data-key)
+    document.querySelectorAll('[data-key]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+        const key = btn.dataset.key;
+        const keyCodes = {
+          up: 126,
+          down: 125,
+          left: 123,
+          right: 124,
+          tab: 48,
+          escape: 53
+        };
+
+        if (keyCodes[key]) {
+          ws.send(JSON.stringify({
+            type: 'send_key_combo',
+            key_code: keyCodes[key],
+            cmd: modifiers.cmd,
+            shift: modifiers.shift,
+            alt: modifiers.option,
+            ctrl: modifiers.ctrl
+          }));
+
+          // Clear modifiers after key press
+          clearModifiers();
+
+          // Visual feedback
+          btn.style.background = '#4A90E2';
+          setTimeout(() => {
+            btn.style.background = '';
+          }, 150);
+        }
+      });
+    });
+
+    // Shortcut button handlers
+    document.querySelectorAll('.shortcut-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+        const action = btn.dataset.action;
+
+        switch (action) {
+          case 'cmd-backtick':
+            // macOS key code 50 = ` (backtick) - switch windows in current app
+            ws.send(JSON.stringify({
+              type: 'send_key_combo',
+              key_code: 50,
+              cmd: true,
+              shift: false,
+              alt: false,
+              ctrl: false
+            }));
+            break;
+
+          case 'cmd-tab':
+            // macOS key code 48 = Tab with Cmd - switch apps
+            ws.send(JSON.stringify({
+              type: 'send_key_combo',
+              key_code: 48,
+              cmd: true,
+              shift: false,
+              alt: false,
+              ctrl: false
+            }));
+            break;
+
+          case 'enter':
+            // macOS key code 36 = Return
+            ws.send(JSON.stringify({
+              type: 'send_key',
+              key_code: 36
+            }));
+            break;
+
+          case 'escape':
+            // macOS key code 53 = Escape
+            ws.send(JSON.stringify({
+              type: 'send_key',
+              key_code: 53
+            }));
+            break;
+
+          case 'tab':
+            // macOS key code 48 = Tab
+            ws.send(JSON.stringify({
+              type: 'send_key',
+              key_code: 48
+            }));
+            break;
+
+          case 'cmd-w':
+            // macOS key code 13 = W with Cmd - close window
+            ws.send(JSON.stringify({
+              type: 'send_key_combo',
+              key_code: 13,
+              cmd: true,
+              shift: false,
+              alt: false,
+              ctrl: false
+            }));
+            break;
+
+          case 'cmd-r':
+            // macOS key code 15 = R with Cmd - refresh
+            ws.send(JSON.stringify({
+              type: 'send_key_combo',
+              key_code: 15,
+              cmd: true,
+              shift: false,
+              alt: false,
+              ctrl: false
+            }));
+            break;
+
+          case 'cmd-t':
+            // macOS key code 17 = T with Cmd - new tab
+            ws.send(JSON.stringify({
+              type: 'send_key_combo',
+              key_code: 17,
+              cmd: true,
+              shift: false,
+              alt: false,
+              ctrl: false
+            }));
+            break;
+
+          case 'cmd-delete':
+            // macOS key code 51 = Delete/Backspace with Cmd
+            ws.send(JSON.stringify({
+              type: 'send_key_combo',
+              key_code: 51,
+              cmd: true,
+              shift: false,
+              alt: false,
+              ctrl: false
+            }));
+            break;
+
+          case 'cmd-q':
+            // macOS key code 12 = Q with Cmd - quit application
+            ws.send(JSON.stringify({
+              type: 'send_key_combo',
+              key_code: 12,
+              cmd: true,
+              shift: false,
+              alt: false,
+              ctrl: false
+            }));
+            break;
+
+          case 'keyboard':
+            // Show iOS keyboard and focus input
+            keyboardInputEl.style.position = 'fixed';
+            keyboardInputEl.style.bottom = '0';
+            keyboardInputEl.style.left = '0';
+            keyboardInputEl.style.width = '100%';
+            keyboardInputEl.style.opacity = '1';
+            keyboardInputEl.focus();
+            break;
+        }
+
+        // Visual feedback
+        btn.style.background = '#4A90E2';
+        setTimeout(() => {
+          btn.style.background = '';
+        }, 150);
+      });
+    });
+
+    // Keyboard passthrough
+    keyboardInputEl.addEventListener('input', (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      const text = e.target.value;
+      if (text) {
+        // Send text to server
+        ws.send(JSON.stringify({
+          type: 'type_text',
+          text: text
+        }));
+
+        // Clear input
+        e.target.value = '';
+      }
+    });
+
+    // Handle backspace key
+    keyboardInputEl.addEventListener('keydown', (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      if (e.key === 'Backspace' || e.keyCode === 8) {
+        // macOS key code 51 = Delete/Backspace
+        ws.send(JSON.stringify({
+          type: 'send_key',
+          key_code: 51
+        }));
+        e.preventDefault();
+      }
+    });
+
+    // Hide keyboard input offscreen when blur() is explicitly called
+    // (called when switching away from Keys panel)
+    keyboardInputEl.addEventListener('blur', () => {
+      keyboardInputEl.style.position = 'absolute';
+      keyboardInputEl.style.left = '-9999px';
+      keyboardInputEl.style.opacity = '0';
+    });
+  </script>
+</body>
+</html>

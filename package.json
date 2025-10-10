@@ -1,0 +1,23 @@
+{
+  "name": "tnnl",
+  "version": "0.1.0",
+  "description": "Personal remote desktop with orchestration",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "cleanup": "pkill -f 'target/debug/tnnl' || true; pkill -f 'npm run tauri dev' || true; pkill -f 'cargo run' || true"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/plugin-http": "^2.5.2",
+    "@tauri-apps/plugin-shell": "^2.0.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.3"
+  }
+}
