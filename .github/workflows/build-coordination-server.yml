@@ -1,0 +1,73 @@
+name: Build Coordination Server
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/coordination-server/**'
+      - 'client.html'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/coordination-server/**'
+      - 'client.html'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Linux Binary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-unknown-linux-gnu
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: backend/coordination-server/target
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-
+
+      - name: Build coordination server
+        run: |
+          cd backend/coordination-server
+          cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coordination-server-linux-x86_64
+          path: backend/coordination-server/target/x86_64-unknown-linux-gnu/release/coordination-server
+          retention-days: 30
+
+      - name: Display build info
+        run: |
+          echo "✅ Coordination server built successfully"
+          echo "Binary location: backend/coordination-server/target/x86_64-unknown-linux-gnu/release/coordination-server"
+          ls -lh backend/coordination-server/target/x86_64-unknown-linux-gnu/release/coordination-server

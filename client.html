@@ -818,7 +818,12 @@
         ws.onclose = () => {
           setStatus('Disconnected', 'error');
           connectBtn.disabled = false;
+
+          // Show connect form again (for both manual and auto-connect cases)
+          connectEl.style.display = '';
           connectEl.classList.remove('hidden');
+          connectBtn.textContent = 'Reconnect';
+
           statsEl.classList.add('hidden');
           frameImg.classList.remove('visible');
 
@@ -843,9 +848,21 @@
       }
     });
 
+    // Auto-connect on tnnl.to subdomains
+    if (location.hostname.endsWith('.tnnl.to')) {
+      // Construct WebSocket URL from the current subdomain
+      const wsUrl = `wss://${location.hostname}`;
+      wsUrlInput.value = wsUrl;
+      localStorage.setItem('tnnl_ws_url', wsUrl);
+
+      // Hide connect form and auto-connect
+      connectEl.style.display = 'none';
+      setStatus('Connecting to ' + location.hostname + '...');
+      setTimeout(connect, 100);
+    }
     // Auto-connect if URL is saved and we're not on localhost
     // (useful for bookmarking on phone)
-    if (savedUrl && !location.hostname.includes('localhost')) {
+    else if (savedUrl && !location.hostname.includes('localhost')) {
       setTimeout(connect, 500);
     }
 
