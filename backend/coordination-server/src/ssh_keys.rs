@@ -1,5 +1,11 @@
 // SSH key management for tunnel authentication
 use anyhow::{anyhow, Result};
+#[allow(unused_imports)]
+use std::path::Path;
+#[allow(unused_imports)]
+use tokio::fs;
+#[allow(unused_imports)]
+use tokio::io::AsyncWriteExt;
 
 #[allow(dead_code)]
 const AUTHORIZED_KEYS_PATH: &str = "/home/tnnl/.ssh/authorized_keys";
