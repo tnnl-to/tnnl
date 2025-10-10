@@ -1,9 +1,7 @@
 // SSH key management for tunnel authentication
 use anyhow::{anyhow, Result};
-use std::path::Path;
-use tokio::fs;
-use tokio::io::AsyncWriteExt;
 
+#[allow(dead_code)]
 const AUTHORIZED_KEYS_PATH: &str = "/home/tnnl/.ssh/authorized_keys";
 
 /// Validate SSH public key format

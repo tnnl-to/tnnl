@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
+#[allow(unused)]
 pub struct Tunnel {
     pub id: Uuid,
     pub subdomain: String,
