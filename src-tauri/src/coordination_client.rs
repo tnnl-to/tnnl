@@ -8,10 +8,10 @@ use uuid::Uuid;
 use tauri::AppHandle;
 
 #[cfg(debug_assertions)]
-const COORDINATION_SERVER_URL: &str = "wss://tnnl.to";
+const COORDINATION_SERVER_URL: &str = "wss://ws.tnnl.to";
 
 #[cfg(not(debug_assertions))]
-const COORDINATION_SERVER_URL: &str = "wss://tnnl.to";
+const COORDINATION_SERVER_URL: &str = "wss://ws.tnnl.to";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TunnelInfo {
