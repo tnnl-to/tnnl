@@ -66,11 +66,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coordination-server-linux-x86_64
-          path: backend/coordination-server/target/release/coordination-server
+          path: backend/coordination-server/target/release/tnnl-coordination-server
           retention-days: 30
 
       - name: Display build info
         run: |
           echo "✅ Coordination server built successfully"
-          echo "Binary location: backend/coordination-server/target/release/coordination-server"
-          ls -lh backend/coordination-server/target/release/coordination-server
+          echo "Binary location: backend/coordination-server/target/release/tnnl-coordination-server"
+          ls -lh backend/coordination-server/target/release/tnnl-coordination-server
