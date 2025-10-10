@@ -47,6 +47,7 @@ const startBtn = document.getElementById('startCapture') as HTMLButtonElement;
 const stopBtn = document.getElementById('stopCapture') as HTMLButtonElement;
 const statsEl = document.getElementById('stats')!;
 const connectTunnelBtn = document.getElementById('connectTunnel') as HTMLButtonElement;
+const disconnectTunnelBtn = document.getElementById('disconnectTunnel') as HTMLButtonElement;
 const tunnelPasswordInput = document.getElementById('tunnel-password') as HTMLInputElement;
 const togglePasswordBtn = document.getElementById('toggle-password') as HTMLButtonElement;
 const tunnelInfoEl = document.getElementById('tunnelInfo')!;
@@ -325,8 +326,10 @@ async function connectToTunnel() {
 
         if (tunnelInfo) {
           clearInterval(pollInterval);
-          connectTunnelBtn.disabled = false;
-          connectTunnelBtn.textContent = 'Reconnect';
+
+          // Show disconnect button, hide connect button
+          connectTunnelBtn.classList.add('hidden');
+          disconnectTunnelBtn.classList.remove('hidden');
           tunnelPasswordInput.disabled = true;
 
           tunnelInfoEl.innerHTML = `
@@ -354,13 +357,40 @@ async function connectToTunnel() {
   }
 }
 
+async function disconnectFromTunnel() {
+  try {
+    disconnectTunnelBtn.disabled = true;
+    disconnectTunnelBtn.textContent = 'Disconnecting...';
+
+    await invoke<string>('disconnect_tunnel');
+
+    // Reset UI
+    connectTunnelBtn.classList.remove('hidden');
+    disconnectTunnelBtn.classList.add('hidden');
+    connectTunnelBtn.disabled = false;
+    connectTunnelBtn.textContent = 'Connect to tnnl.to';
+    tunnelPasswordInput.disabled = false;
+    tunnelPasswordInput.value = '';
+    tunnelInfoEl.innerHTML = '<em>Not connected</em>';
+
+    console.log('[Tunnel] Disconnected successfully');
+  } catch (error: any) {
+    console.error('[Tunnel] Disconnect failed:', error);
+    disconnectTunnelBtn.disabled = false;
+    disconnectTunnelBtn.textContent = 'Disconnect';
+  }
+}
+
 async function updateTunnelInfo() {
   try {
     const tunnelInfo = await invoke<TunnelInfo | null>('get_tunnel_info');
 
     if (tunnelInfo && tunnelInfoEl) {
-      connectTunnelBtn.textContent = 'Reconnect';
+      // Show disconnect button, hide connect button
+      connectTunnelBtn.classList.add('hidden');
+      disconnectTunnelBtn.classList.remove('hidden');
       tunnelPasswordInput.disabled = true;
+
       tunnelInfoEl.innerHTML = `
         <strong>✓ Connected</strong><br>
         <strong>URL:</strong> <a href="${tunnelInfo.url}" target="_blank" style="color: #ffffff; text-decoration: underline;">${tunnelInfo.url}</a><br>
@@ -404,6 +434,7 @@ async function syncUIState() {
 startBtn.addEventListener('click', startCapture);
 stopBtn.addEventListener('click', stopCapture);
 connectTunnelBtn.addEventListener('click', connectToTunnel);
+disconnectTunnelBtn.addEventListener('click', disconnectFromTunnel);
 togglePasswordBtn.addEventListener('click', () => {
   const isPassword = tunnelPasswordInput.type === 'password';
   tunnelPasswordInput.type = isPassword ? 'text' : 'password';

@@ -235,10 +235,10 @@ server {{
         let template = tokio::fs::read_to_string(template_path).await?;
 
         // Replace placeholder WebSocket URL with this tunnel's HTTPS URL
+        // Set the value attribute to pre-fill the input field
         let customized = template
-            .replace("ws://192.168.1.100:9001", &format!("wss://{}.tnnl.to", subdomain))
             .replace("placeholder=\"ws://192.168.1.100:9001\"",
-                    &format!("placeholder=\"wss://{}.tnnl.to\"", subdomain));
+                    &format!("value=\"wss://{}.tnnl.to\" placeholder=\"wss://{}.tnnl.to\"", subdomain, subdomain));
 
         // Write to /var/www/html
         let html_path = format!("/var/www/html/{}.html", subdomain);
