@@ -438,16 +438,6 @@ async function syncUIState() {
   } catch (error) {
     console.error('Failed to check tunnel status:', error);
   }
-
-  // Update tray menu status
-  try {
-    await invoke('update_tray_menu_status', {
-      captureActive,
-      tunnelActive
-    });
-  } catch (error) {
-    console.error('Failed to update tray menu:', error);
-  }
 }
 
 // Main App Event Listeners
