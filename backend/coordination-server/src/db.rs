@@ -66,6 +66,7 @@ pub async fn create_tunnel_record(pool: &DbPool, tunnel: &Tunnel) -> Result<()> 
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn get_tunnel_by_subdomain(pool: &DbPool, subdomain: &str) -> Result<Option<Tunnel>> {
     let row = sqlx::query(
         r#"
@@ -109,6 +110,7 @@ pub async fn delete_tunnel_record(pool: &DbPool, subdomain: &str) -> Result<()> 
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn update_tunnel_last_connected(pool: &DbPool, subdomain: &str) -> Result<()> {
     sqlx::query(
         "UPDATE tunnels SET last_connected_at = CURRENT_TIMESTAMP WHERE subdomain = $1"
@@ -121,6 +123,7 @@ pub async fn update_tunnel_last_connected(pool: &DbPool, subdomain: &str) -> Res
 }
 
 /// Get all tunnels for a user
+#[allow(dead_code)]
 pub async fn get_user_tunnels(pool: &DbPool, user_id: Uuid) -> Result<Vec<Tunnel>> {
     let user_id_str = user_id.to_string();
 

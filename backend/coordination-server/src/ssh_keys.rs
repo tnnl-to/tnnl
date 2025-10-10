@@ -110,6 +110,7 @@ pub async fn add_ssh_key_to_authorized_keys(public_key: &str) -> Result<()> {
 
 /// Remove SSH public key from authorized_keys file
 /// Used for cleanup when a user is deleted
+#[allow(dead_code)]
 pub async fn remove_ssh_key_from_authorized_keys(public_key: &str) -> Result<()> {
     // In development mode, skip actual file operations
     #[cfg(debug_assertions)]

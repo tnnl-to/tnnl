@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tunnel {
+    #[allow(dead_code)]
     pub id: Uuid,
     pub subdomain: String,
     pub user_id: Uuid,
@@ -42,6 +43,7 @@ impl TunnelManager {
     }
 
     /// Create a new tunnel with a custom subdomain
+    #[allow(dead_code)]
     pub async fn create_custom_tunnel(
         &self,
         user_id: Uuid,
@@ -103,6 +105,7 @@ impl TunnelManager {
     }
 
     /// Get tunnel by subdomain
+    #[allow(dead_code)]
     pub async fn get_tunnel(&self, subdomain: &str) -> Option<Tunnel> {
         let tunnels = self.tunnels.read().await;
         tunnels.get(subdomain).cloned()
@@ -140,6 +143,7 @@ fn generate_random_subdomain() -> String {
     format!("{}-{}-{}", adj, noun, num)
 }
 
+#[allow(dead_code)]
 fn is_valid_subdomain(subdomain: &str) -> bool {
     // Subdomain must be 3-63 chars, lowercase alphanumeric and hyphens only
     if subdomain.len() < 3 || subdomain.len() > 63 {
