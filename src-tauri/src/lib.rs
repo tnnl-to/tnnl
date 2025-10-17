@@ -54,6 +54,12 @@ pub fn run() {
             show_and_activate_window,
         ])
         .setup(|app| {
+            // Clean up orphaned processes from previous sessions (e.g., after force quit)
+            println!("[tnnl] Running startup cleanup...");
+            if let Err(e) = websocket_server::cleanup_orphaned_port_9001() {
+                eprintln!("[tnnl] ✗ Failed to cleanup port 9001: {}", e);
+            }
+
             // Initialize input controller
             if let Err(e) = input_handler::init() {
                 eprintln!("[tnnl] ✗ Failed to initialize input controller: {}", e);
@@ -181,7 +187,28 @@ pub fn run() {
                             }
                         }
                         "quit" => {
-                            app.exit(0);
+                            let app_clone = app.clone();
+                            tauri::async_runtime::spawn(async move {
+                                println!("[tnnl] Cleaning up before quit...");
+
+                                // Close SSH tunnel and coordination server
+                                if let Err(e) = coordination_client::disconnect_from_coordination(&app_clone).await {
+                                    eprintln!("[tnnl] Failed to disconnect: {}", e);
+                                }
+
+                                // Stop WebSocket server
+                                if let Err(e) = websocket_server::stop_server().await {
+                                    eprintln!("[tnnl] Failed to stop WebSocket server: {}", e);
+                                }
+
+                                // Stop screen capture
+                                if let Err(e) = screen_capture::stop_capture().await {
+                                    eprintln!("[tnnl] Failed to stop capture: {}", e);
+                                }
+
+                                println!("[tnnl] Cleanup complete, exiting...");
+                                app_clone.exit(0);
+                            });
                         }
                         _ => {}
                     }
@@ -453,16 +480,11 @@ async fn workos_verify_code(code: String, auth_id: String) -> Result<workos_auth
 // Coordination server commands
 #[tauri::command]
 async fn connect_to_coordination_server(app: tauri::AppHandle, access_token: String, password: Option<String>) -> Result<String, String> {
-    std::fs::write("/tmp/tauri_command_called.txt", format!("Tauri command called at {:?}\n", std::time::SystemTime::now())).ok();
-    eprintln!("!!! TAURI COMMAND CALLED !!!");
-
     // Disconnect first if already connected
-    eprintln!("[Connect] Checking for existing connection...");
     if let Err(e) = coordination_client::disconnect_from_coordination(&app).await {
         eprintln!("[Connect] Warning: Failed to disconnect existing connection: {}", e);
     }
 
-    eprintln!("[Connect] Starting new connection...");
     coordination_client::connect_to_coordination(app, access_token, password)
         .await
         .map_err(|e| e.to_string())?;

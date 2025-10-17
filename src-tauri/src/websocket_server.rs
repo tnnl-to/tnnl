@@ -558,6 +558,71 @@ pub async fn stop_server() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+/// Clean up any orphaned processes using port 9001 from previous sessions
+/// This is especially important after force quits or crashes
+pub fn cleanup_orphaned_port_9001() -> Result<(), Box<dyn std::error::Error>> {
+    println!("[WebSocket] Cleaning up orphaned processes on port 9001...");
+
+    #[cfg(unix)]
+    {
+        use std::process::Command;
+
+        // Find processes using port 9001
+        let output = Command::new("lsof")
+            .args(&["-ti", ":9001"])
+            .output()?;
+
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let pids: Vec<&str> = stdout.trim().lines().collect();
+
+            if pids.is_empty() {
+                println!("[WebSocket] No orphaned processes found on port 9001");
+                return Ok(());
+            }
+
+            println!("[WebSocket] Found {} process(es) using port 9001", pids.len());
+
+            for pid_str in pids {
+                if let Ok(pid) = pid_str.parse::<i32>() {
+                    println!("[WebSocket] Killing process PID: {}", pid);
+
+                    #[cfg(target_os = "macos")]
+                    {
+                        use nix::sys::signal::{kill, Signal};
+                        use nix::unistd::Pid;
+
+                        let pid_obj = Pid::from_raw(pid);
+                        if let Err(e) = kill(pid_obj, Signal::SIGKILL) {
+                            eprintln!("[WebSocket] Failed to kill PID {}: {}", pid, e);
+                        } else {
+                            println!("[WebSocket] ✓ Killed process PID: {}", pid);
+                        }
+                    }
+
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        let _ = Command::new("kill")
+                            .arg("-9")
+                            .arg(pid.to_string())
+                            .output();
+                        println!("[WebSocket] ✓ Killed process PID: {}", pid);
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        // On Windows, use netstat and taskkill
+        // TODO: Implement Windows cleanup
+        eprintln!("[WebSocket] Port cleanup not yet implemented for Windows");
+    }
+
+    Ok(())
+}
+
 /// Server information struct
 #[derive(Debug, serde::Serialize)]
 pub struct ServerInfo {

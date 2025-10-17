@@ -5,6 +5,7 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tauri::{AppHandle, Manager};
+use tauri_plugin_shell::ShellExt;
 
 #[cfg(debug_assertions)]
 const SSH_SERVER: &str = "tnnl.to";
@@ -52,6 +53,62 @@ impl SshTunnelManager {
             ssh_key_path,
             ssh_pub_key_path,
         })
+    }
+
+    /// Clean up any orphaned SSH tunnels from previous sessions
+    /// This is especially important after force quits or crashes
+    pub fn cleanup_orphaned_tunnels(&self) -> Result<()> {
+        println!("[SSH Tunnel] Cleaning up orphaned SSH tunnels from previous sessions...");
+
+        #[cfg(unix)]
+        {
+            // Find all SSH processes connecting to our server
+            let output = Command::new("sh")
+                .arg("-c")
+                .arg(format!("ps aux | grep 'ssh.*-R.*{}@{}' | grep -v grep || true", SSH_USER, SSH_SERVER))
+                .output()?;
+
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let lines: Vec<&str> = stdout.lines().collect();
+
+                if lines.is_empty() {
+                    println!("[SSH Tunnel] No orphaned tunnels found");
+                    return Ok(());
+                }
+
+                println!("[SSH Tunnel] Found {} orphaned tunnel(s)", lines.len());
+
+                for line in lines {
+                    // Extract PID (second column in ps aux output)
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 2 {
+                        if let Ok(pid) = parts[1].parse::<i32>() {
+                            println!("[SSH Tunnel] Killing orphaned tunnel PID: {}", pid);
+
+                            use nix::sys::signal::{kill, Signal};
+                            use nix::unistd::Pid;
+
+                            let pid_obj = Pid::from_raw(pid);
+                            if let Err(e) = kill(pid_obj, Signal::SIGTERM) {
+                                eprintln!("[SSH Tunnel] Failed to kill PID {}: {}", pid, e);
+                            } else {
+                                println!("[SSH Tunnel] ✓ Killed orphaned tunnel PID: {}", pid);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            // On Windows, use tasklist and taskkill
+            // TODO: Implement Windows cleanup
+            eprintln!("[SSH Tunnel] Orphaned tunnel cleanup not yet implemented for Windows");
+        }
+
+        Ok(())
     }
 
     /// Generate SSH keypair if it doesn't exist
@@ -242,7 +299,14 @@ pub async fn get_or_init_manager(app_handle: &AppHandle) -> Result<Arc<tokio::sy
     let mut manager = manager_lock.lock().await;
 
     if manager.is_none() {
-        *manager = Some(SshTunnelManager::new(app_handle)?);
+        let mgr = SshTunnelManager::new(app_handle)?;
+
+        // Clean up orphaned tunnels from previous sessions on first initialization
+        if let Err(e) = mgr.cleanup_orphaned_tunnels() {
+            eprintln!("[SSH Tunnel] Failed to cleanup orphaned tunnels: {}", e);
+        }
+
+        *manager = Some(mgr);
     }
 
     Ok(manager_lock.clone())

@@ -51,18 +51,10 @@ impl CoordinationClient {
 
     /// Connect to coordination server with authentication token
     pub async fn connect(&self, app_handle: AppHandle, access_token: String, password: Option<String>) -> Result<()> {
-        // Write to a file to confirm this function is being called
-        std::fs::write("/tmp/tnnl_connect_called.txt", format!("Connect called at {:?}\n", std::time::SystemTime::now())).ok();
-
-        eprintln!("\n\n==> [Coordination] CONNECT FUNCTION CALLED\n");
-        println!("\n\n==> [Coordination] CONNECT FUNCTION CALLED (stdout)\n");
-
         // Store token for reconnection
         *self.access_token.write().await = Some(access_token.clone());
 
         *self.status.write().await = ConnectionStatus::Connecting;
-
-        eprintln!("==> [Coordination] Attempting to connect to: {}\n", COORDINATION_SERVER_URL);
 
         // Connect to WebSocket server with timeout
         let connect_result = tokio::time::timeout(
