@@ -7,6 +7,9 @@ use core_foundation::number::CFNumber;
 use core_foundation::dictionary::CFDictionary;
 use core_foundation::array::{CFArray, CFArrayRef};
 use core_foundation::string::CFString;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use once_cell::sync::Lazy;
 
 /// Information about a running application
 #[derive(Debug, Clone, serde::Serialize)]
@@ -313,7 +316,7 @@ pub struct WindowInfo {
     pub bounds: (f64, f64, f64, f64), // (x, y, width, height)
 }
 
-/// FFI declarations for Core Graphics window list
+// FFI declarations for Core Graphics window list
 #[link(name = "CoreGraphics", kind = "framework")]
 extern "C" {
     fn CGWindowListCopyWindowInfo(option: u32, relative_to_window: u32) -> CFArrayRef;
@@ -436,5 +439,66 @@ pub fn get_frontmost_window() -> Option<(CGWindowID, f64, f64, f64, f64)> {
     windows.into_iter()
         .next()
         .map(|w| (w.window_id, w.bounds.0, w.bounds.1, w.bounds.2, w.bounds.3))
+}
+
+/// Global state for window focus observer running flag
+static FOCUS_OBSERVER_RUNNING: Lazy<Arc<Mutex<bool>>> = Lazy::new(|| Arc::new(Mutex::new(false)));
+
+/// Start observing window focus changes and update crop automatically
+/// This sets up a macOS notification observer that listens for app activation
+pub async fn start_focus_observer() -> Result<(), Box<dyn std::error::Error>> {
+    // Check if already running
+    let mut is_running = FOCUS_OBSERVER_RUNNING.lock().await;
+    if *is_running {
+        println!("[tnnl] Focus observer already running, skipping");
+        return Ok(());
+    }
+    *is_running = true;
+    drop(is_running);
+
+    // For now, we'll use polling every 500ms to detect focus changes
+    // A proper implementation would use NSWorkspace notifications with blocks
+    tokio::spawn(async move {
+        let mut last_app: Option<String> = None;
+
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
+            // Check if we should stop
+            if !*FOCUS_OBSERVER_RUNNING.lock().await {
+                println!("[tnnl] Focus observer stopped");
+                break;
+            }
+
+            if let Ok(Some(app_info)) = get_foreground_application() {
+                let current_app = format!("{}:{}", app_info.bundle_id, app_info.process_id);
+
+                if last_app.as_ref() != Some(&current_app) {
+                    println!("[tnnl] Focus changed to: {}", app_info.app_name);
+                    last_app = Some(current_app);
+
+                    // Refresh window crop
+                    if let Err(e) = crate::screen_capture::refresh_window_crop().await {
+                        eprintln!("[tnnl] Failed to refresh crop on focus change: {}", e);
+                    } else {
+                        println!("[tnnl] ✓ Crop updated for {}", app_info.app_name);
+                    }
+                }
+            }
+        }
+    });
+
+    println!("[tnnl] Window focus observer started");
+    Ok(())
+}
+
+/// Stop observing window focus changes
+pub async fn stop_focus_observer() -> Result<(), Box<dyn std::error::Error>> {
+    let mut is_running = FOCUS_OBSERVER_RUNNING.lock().await;
+    *is_running = false;
+    drop(is_running);
+
+    println!("[tnnl] Window focus observer stop requested");
+    Ok(())
 }
 

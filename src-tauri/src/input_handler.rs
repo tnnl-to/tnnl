@@ -23,9 +23,50 @@ fn check_accessibility_permission() -> bool {
 }
 
 /// Mouse input control for macOS
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct KeyEvent {
+    pub key_code: u16,
+    pub down: bool,
+    #[serde(default)]
+    pub cmd: bool,
+    #[serde(default)]
+    pub shift: bool,
+    #[serde(default)]
+    pub alt: bool,
+    #[serde(default)]
+    pub ctrl: bool,
+    #[serde(default)]
+    pub delay_ms: Option<u32>,
+}
+
 pub struct InputController {}
 
 impl InputController {
+    /// Send a batch of key events atomically (ordered)
+    pub fn send_key_events(&self, events: &[KeyEvent]) -> Result<(), Box<dyn std::error::Error>> {
+        if !check_accessibility_permission() {
+            return Err("Accessibility permission required".into());
+        }
+        let event_source = Self::get_event_source()?;
+        for ev in events {
+            // Build key event (down/up)
+            let cg_event = CGEvent::new_keyboard_event(event_source.clone(), ev.key_code as u16, ev.down)
+                .map_err(|_| "Failed to create key event")?;
+            // Apply modifier flags for this event, if any
+            let mut flags: u64 = 0;
+            if ev.cmd { flags |= 0x100000; }
+            if ev.shift { flags |= 0x20000; }
+            if ev.alt { flags |= 0x80000; }
+            if ev.ctrl { flags |= 0x40000; }
+            cg_event.set_flags(core_graphics::event::CGEventFlags::from_bits_truncate(flags));
+            cg_event.post(CGEventTapLocation::HID);
+            // Optional small delay to preserve ordering for some apps
+            if let Some(ms) = ev.delay_ms {
+                if ms > 0 { std::thread::sleep(std::time::Duration::from_millis(ms as u64)); }
+            }
+        }
+        Ok(())
+    }
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         Ok(InputController {})
     }

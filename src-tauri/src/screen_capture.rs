@@ -80,7 +80,7 @@ pub async fn get_displays() -> Result<Vec<DisplayInfo>, Box<dyn std::error::Erro
     let targets = scap::get_all_targets();
 
     let displays: Vec<DisplayInfo> = targets.iter()
-        .filter_map(|target| {
+        .filter_map(|_target| {
             // scap targets are opaque, so we'll just create placeholder display info
             // In reality, scap doesn't expose target details before capture
             Some(DisplayInfo {
@@ -153,13 +153,13 @@ pub async fn start_capture_with_mode(mode: CaptureMode) -> Result<String, Box<dy
 
     // Create capturer with options
     let options = Options {
-        fps: 10, // Start conservative, can increase later
+        fps: 20, // Increased for smoother motion while compensating with lower resolution/quality
         target,
         show_cursor: true,
         show_highlight: false,
         excluded_targets: None,
         output_type: FrameType::BGRAFrame,
-        output_resolution: Resolution::_1080p, // Increased from 720p for better quality
+        output_resolution: Resolution::_720p, // Lower resolution to reduce bandwidth and latency
         crop_area: None,
     };
 
@@ -184,13 +184,13 @@ pub async fn start_capture_with_mode(mode: CaptureMode) -> Result<String, Box<dy
     }
 
     // Start background capture task
-    start_capture_loop(capturer_arc);
+    start_capture_loop();
 
     Ok(format!("Screen capture started successfully with {:?}", mode))
 }
 
 /// Background task that continuously captures frames
-fn start_capture_loop(capturer: Arc<parking_lot::Mutex<Capturer>>) {
+fn start_capture_loop() {
     tokio::task::spawn(async move {
         println!("[tnnl] Starting scap capture loop at 10 FPS");
 
@@ -211,40 +211,49 @@ fn start_capture_loop(capturer: Arc<parking_lot::Mutex<Capturer>>) {
                 }
             }
 
-            // Capture a frame
-            let frame_result = {
-                let cap = capturer.lock();
-                cap.get_next_frame()
+            // Snapshot crop_rect and increment frame count without waiting (best-effort)
+            let crop_rect_snapshot = {
+                if let Ok(state) = CAPTURE_STATE.try_read() {
+                    state.as_ref().and_then(|s| s.crop_rect)
+                } else { None }
             };
 
-            match frame_result {
-                Ok(frame) => {
-                    // Frame captured successfully, get crop rect from session
-                    let crop_rect = {
-                        let mut state = CAPTURE_STATE.write().await;
-                        if let Some(session) = state.as_mut() {
-                            session.frame_count += 1;
-                            session.crop_rect
-                        } else {
-                            None
-                        }
-                    }; // Release lock before encoding
+            // Capture a frame by fetching the capturer from global state without holding across await
+            let frame_opt = {
+                let capturer_arc_opt = if let Ok(state) = CAPTURE_STATE.try_read() {
+                    state.as_ref().and_then(|s| s.capturer.as_ref().cloned())
+                } else { None };
 
-                    // Convert frame to JPEG (with optional cropping) and broadcast
-                    if let Ok(jpeg_data) = frame_to_jpeg(&frame, crop_rect, 90) {
+                if let Some(capturer_arc) = capturer_arc_opt {
+                    let cap = capturer_arc.lock();
+                    cap.get_next_frame().ok()
+                } else {
+                    None
+                }
+            };
+
+            match frame_opt {
+                Some(frame) => {
+                    // Convert frame to JPEG (no await here)
+                    if let Ok(jpeg_data) = frame_to_jpeg(&frame, crop_rect_snapshot, 70) {
+                        // Now that heavy, non-Send values are dropped, we can await
                         let _ = crate::websocket_server::broadcast_frame(jpeg_data).await;
+
+                        // Increment frame count (best-effort)
+                        if let Ok(mut state) = CAPTURE_STATE.try_write() {
+                            if let Some(session) = state.as_mut() {
+                                session.frame_count = session.frame_count.saturating_add(1);
+                            }
+                        }
                     }
                 }
-                Err(e) => {
-                    // Log error but don't stop - might be transient
-                    if !e.to_string().contains("timeout") {
-                        eprintln!("[tnnl] Frame capture error: {}", e);
-                    }
+                None => {
+                    // No frame captured this iteration (e.g., capturer not available)
                 }
             }
 
-            // Target 10 FPS (100ms delay)
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            // Target ~20 FPS (50ms delay)
+            tokio::time::sleep(Duration::from_millis(50)).await;
         }
     });
 }
@@ -384,11 +393,6 @@ fn frame_to_jpeg(
                 let scaled_y = (crop_y * scale_y).max(0.0) as u32;
                 let scaled_w = (crop_w * scale_x).min((capture_width - scaled_x) as f64) as u32;
                 let scaled_h = (crop_h * scale_y).min((capture_height - scaled_y) as f64) as u32;
-
-                println!("[tnnl] Cropping: display {}x{} → capture {}x{}, window ({},{},{},{}) → ({},{},{},{})",
-                    display_w, display_h, capture_width, capture_height,
-                    crop_x, crop_y, crop_w, crop_h,
-                    scaled_x, scaled_y, scaled_w, scaled_h);
 
                 // Crop and convert BGRA to RGB
                 let mut rgb = Vec::with_capacity((scaled_w * scaled_h * 3) as usize);

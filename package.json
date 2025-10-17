@@ -1,6 +1,6 @@
 {
   "name": "tnnl",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Personal remote desktop with orchestration",
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "cleanup": "pkill -f 'target/debug/tnnl' || true; pkill -f 'npm run tauri dev' || true; pkill -f 'cargo run' || true"
+    "taui": "tauri",
+    "cleanup": "(lsof -ti:1420 | xargs kill -9) >/dev/null 2>&1 || true; pkill -f 'target/debug/tnnl' || true; pkill -f 'npm run tauri dev' || true; pkill -f 'cargo run' || true"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.1.1",

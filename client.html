@@ -1101,13 +1101,14 @@
         };
 
         if (keyCodes[key]) {
+          const events = [
+            { key_code: keyCodes[key], down: true, cmd: modifiers.cmd, shift: modifiers.shift, alt: modifiers.option, ctrl: modifiers.ctrl },
+            { key_code: keyCodes[key], down: false, cmd: modifiers.cmd, shift: modifiers.shift, alt: modifiers.option, ctrl: modifiers.ctrl }
+          ];
           ws.send(JSON.stringify({
-            type: 'send_key_combo',
-            key_code: keyCodes[key],
-            cmd: modifiers.cmd,
-            shift: modifiers.shift,
-            alt: modifiers.option,
-            ctrl: modifiers.ctrl
+            type: 'send_key_batch',
+            events,
+            txn_id: 'keys_btn_' + Date.now()
           }));
 
           // Clear modifiers after key press
@@ -1133,24 +1134,24 @@
           case 'cmd-backtick':
             // macOS key code 50 = ` (backtick) - switch windows in current app
             ws.send(JSON.stringify({
-              type: 'send_key_combo',
-              key_code: 50,
-              cmd: true,
-              shift: false,
-              alt: false,
-              ctrl: false
+              type: 'send_key_batch',
+              events: [
+                { key_code: 50, down: true, cmd: true, shift: false, alt: false, ctrl: false },
+                { key_code: 50, down: false, cmd: true, shift: false, alt: false, ctrl: false }
+              ],
+              txn_id: 'shortcut_cmd_backtick_' + Date.now()
             }));
             break;
 
           case 'cmd-tab':
             // macOS key code 48 = Tab with Cmd - switch apps
             ws.send(JSON.stringify({
-              type: 'send_key_combo',
-              key_code: 48,
-              cmd: true,
-              shift: false,
-              alt: false,
-              ctrl: false
+              type: 'send_key_batch',
+              events: [
+                { key_code: 48, down: true, cmd: true, shift: false, alt: false, ctrl: false },
+                { key_code: 48, down: false, cmd: true, shift: false, alt: false, ctrl: false }
+              ],
+              txn_id: 'shortcut_cmd_tab_' + Date.now()
             }));
             break;
 
@@ -1181,60 +1182,60 @@
           case 'cmd-w':
             // macOS key code 13 = W with Cmd - close window
             ws.send(JSON.stringify({
-              type: 'send_key_combo',
-              key_code: 13,
-              cmd: true,
-              shift: false,
-              alt: false,
-              ctrl: false
+              type: 'send_key_batch',
+              events: [
+                { key_code: 13, down: true, cmd: true, shift: false, alt: false, ctrl: false },
+                { key_code: 13, down: false, cmd: true, shift: false, alt: false, ctrl: false }
+              ],
+              txn_id: 'shortcut_cmd_w_' + Date.now()
             }));
             break;
 
           case 'cmd-r':
             // macOS key code 15 = R with Cmd - refresh
             ws.send(JSON.stringify({
-              type: 'send_key_combo',
-              key_code: 15,
-              cmd: true,
-              shift: false,
-              alt: false,
-              ctrl: false
+              type: 'send_key_batch',
+              events: [
+                { key_code: 15, down: true, cmd: true, shift: false, alt: false, ctrl: false },
+                { key_code: 15, down: false, cmd: true, shift: false, alt: false, ctrl: false }
+              ],
+              txn_id: 'shortcut_cmd_r_' + Date.now()
             }));
             break;
 
           case 'cmd-t':
             // macOS key code 17 = T with Cmd - new tab
             ws.send(JSON.stringify({
-              type: 'send_key_combo',
-              key_code: 17,
-              cmd: true,
-              shift: false,
-              alt: false,
-              ctrl: false
+              type: 'send_key_batch',
+              events: [
+                { key_code: 17, down: true, cmd: true, shift: false, alt: false, ctrl: false },
+                { key_code: 17, down: false, cmd: true, shift: false, alt: false, ctrl: false }
+              ],
+              txn_id: 'shortcut_cmd_t_' + Date.now()
             }));
             break;
 
           case 'cmd-delete':
             // macOS key code 51 = Delete/Backspace with Cmd
             ws.send(JSON.stringify({
-              type: 'send_key_combo',
-              key_code: 51,
-              cmd: true,
-              shift: false,
-              alt: false,
-              ctrl: false
+              type: 'send_key_batch',
+              events: [
+                { key_code: 51, down: true, cmd: true, shift: false, alt: false, ctrl: false },
+                { key_code: 51, down: false, cmd: true, shift: false, alt: false, ctrl: false }
+              ],
+              txn_id: 'shortcut_cmd_delete_' + Date.now()
             }));
             break;
 
           case 'cmd-q':
             // macOS key code 12 = Q with Cmd - quit application
             ws.send(JSON.stringify({
-              type: 'send_key_combo',
-              key_code: 12,
-              cmd: true,
-              shift: false,
-              alt: false,
-              ctrl: false
+              type: 'send_key_batch',
+              events: [
+                { key_code: 12, down: true, cmd: true, shift: false, alt: false, ctrl: false },
+                { key_code: 12, down: false, cmd: true, shift: false, alt: false, ctrl: false }
+              ],
+              txn_id: 'shortcut_cmd_q_' + Date.now()
             }));
             break;
 

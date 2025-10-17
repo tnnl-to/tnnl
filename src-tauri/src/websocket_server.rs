@@ -13,6 +13,7 @@ static WS_STATE: Lazy<Arc<RwLock<Option<ServerState>>>> =
 struct ServerState {
     address: SocketAddr,
     frame_tx: broadcast::Sender<Vec<u8>>,
+    shutdown_tx: broadcast::Sender<()>,
 }
 
 /// Start the WebSocket server on a specific port
@@ -60,12 +61,16 @@ pub async fn start_server(port: u16) -> Result<String, Box<dyn std::error::Error
     // Create broadcast channel for frames (capacity: 2 frames buffered)
     let (frame_tx, _frame_rx) = broadcast::channel::<Vec<u8>>(2);
 
+    // Create shutdown channel
+    let (shutdown_tx, mut shutdown_rx) = broadcast::channel::<()>(1);
+
     // Store server state
     {
         let mut state = WS_STATE.write().await;
         *state = Some(ServerState {
             address: local_addr,
             frame_tx: frame_tx.clone(),
+            shutdown_tx: shutdown_tx.clone(),
         });
     }
 
@@ -73,12 +78,28 @@ pub async fn start_server(port: u16) -> Result<String, Box<dyn std::error::Error
     tokio::spawn(async move {
         println!("[tnnl] WebSocket server listening...");
 
-        while let Ok((stream, peer_addr)) = listener.accept().await {
-            println!("[tnnl] New connection from: {}", peer_addr);
-
-            let frame_rx = frame_tx.subscribe();
-            tokio::spawn(handle_connection(stream, peer_addr, frame_rx));
+        loop {
+            tokio::select! {
+                accept_result = listener.accept() => {
+                    match accept_result {
+                        Ok((stream, peer_addr)) => {
+                            println!("[tnnl] New connection from: {}", peer_addr);
+                            let frame_rx = frame_tx.subscribe();
+                            tokio::spawn(handle_connection(stream, peer_addr, frame_rx));
+                        }
+                        Err(e) => {
+                            eprintln!("[tnnl] Accept error: {}", e);
+                            break;
+                        }
+                    }
+                }
+                _ = shutdown_rx.recv() => {
+                    println!("[tnnl] Shutdown signal received, stopping listener");
+                    break;
+                }
+            }
         }
+        println!("[tnnl] WebSocket server task terminated");
     });
 
     Ok(format!("WebSocket server started on {}", local_addr))
@@ -142,19 +163,36 @@ async fn handle_client_message(
 
                             // Get app info for the name
                             if let Ok(Some(app)) = crate::window_manager::get_foreground_application() {
-                                println!("[tnnl] Switching to window capture for app: {}", app.app_name);
+                                let app_name = app.app_name.clone();
+                                println!("[tnnl] Switching to window capture for app: {}", app_name);
 
                                 // Switch capture to crop to this window's bounds
-                                if let Err(e) = crate::screen_capture::set_capture_mode(
-                                    crate::screen_capture::CaptureMode::Window {
-                                        app_name: app.app_name.clone(),
-                                        window_title: String::new(),
-                                        crop_rect: Some((x, y, width, height)),
+                                // Extract success before any further awaits to avoid Send issues
+                                let capture_success = {
+                                    let capture_result = crate::screen_capture::set_capture_mode(
+                                        crate::screen_capture::CaptureMode::Window {
+                                            app_name: app_name.clone(),
+                                            window_title: String::new(),
+                                            crop_rect: Some((x, y, width, height)),
+                                        }
+                                    ).await;
+
+                                    match capture_result {
+                                        Ok(_) => true,
+                                        Err(e) => {
+                                            eprintln!("[tnnl] Failed to switch capture mode: {}", e);
+                                            false
+                                        }
                                     }
-                                ).await {
-                                    eprintln!("[tnnl] Failed to switch capture mode: {}", e);
-                                } else {
-                                    println!("[tnnl] ✓ Switched to window-only capture for {}", app.app_name);
+                                };
+
+                                if capture_success {
+                                    println!("[tnnl] ✓ Switched to window-only capture for {}", app_name);
+
+                                    // Start focus observer to automatically update crop when user switches apps
+                                    if let Err(e) = crate::window_manager::start_focus_observer().await {
+                                        eprintln!("[tnnl] Failed to start focus observer: {}", e);
+                                    }
                                 }
                             }
                         } else {
@@ -279,6 +317,59 @@ async fn handle_client_message(
                 }
             }
         }
+        "send_key_batch" => {
+            // Client sending atomic batch of key events
+            if let Some(events_val) = message.get("events") {
+                let txn_id = message.get("txn_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let mut response_to_send: Option<String> = None;
+                match serde_json::from_value::<Vec<crate::input_handler::KeyEvent>>(events_val.clone()) {
+                    Ok(events) => {
+                        let result = crate::input_handler::with_controller(|controller| {
+                            controller.send_key_events(&events)
+                        });
+                        // Build response synchronously to avoid holding non-Send errors across await
+                        let ack_value = match result {
+                            Ok(_) => serde_json::json!({
+                                "type": "ack",
+                                "ack_of": "send_key_batch",
+                                "ok": true,
+                                "txn_id": txn_id,
+                            }),
+                            Err(err) => {
+                                eprintln!("[tnnl] Key batch failed: {}", err);
+                                let err_msg = err.to_string();
+                                serde_json::json!({
+                                    "type": "ack",
+                                    "ack_of": "send_key_batch",
+                                    "ok": false,
+                                    "error": err_msg,
+                                    "txn_id": txn_id,
+                                })
+                            }
+                        };
+                        if let Ok(json_str) = serde_json::to_string(&ack_value) {
+                            response_to_send = Some(json_str);
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("[tnnl] Invalid key batch payload: {}", err);
+                        let ack_value = serde_json::json!({
+                            "type": "ack",
+                            "ack_of": "send_key_batch",
+                            "ok": false,
+                            "error": format!("invalid payload: {}", err),
+                            "txn_id": txn_id,
+                        });
+                        if let Ok(json_str) = serde_json::to_string(&ack_value) {
+                            response_to_send = Some(json_str);
+                        }
+                    }
+                }
+                if let Some(json_str) = response_to_send {
+                    let _ = response_tx.send(json_str).await;
+                }
+            }
+        }
         _ => {
             println!("[tnnl] Unknown message type: {}", msg_type);
         }
@@ -349,10 +440,19 @@ async fn handle_connection(
             frame_result = frame_rx.recv() => {
                 match frame_result {
                     Ok(frame_data) => {
-                        // Send frame as binary WebSocket message
-                        if let Err(e) = ws_sender.send(Message::Binary(frame_data)).await {
-                            eprintln!("[tnnl] Failed to send frame: {}", e);
-                            break;
+                        // Send frame as binary WebSocket message with a small timeout to avoid blocking on slow clients
+                        match tokio::time::timeout(tokio::time::Duration::from_millis(50), ws_sender.send(Message::Binary(frame_data))).await {
+                            Ok(Ok(_)) => {},
+                            Ok(Err(e)) => {
+                                eprintln!("[tnnl] Failed to send frame: {}", e);
+                                break;
+                            }
+                            Err(_) => {
+                                // Timed out sending frame; drop this frame to keep pipeline moving
+                                // Do not break; continue to next frame
+                                // Optionally log occasionally
+                                // eprintln!("[tnnl] Send timed out; dropping frame for {}", peer_addr);
+                            }
                         }
                     }
                     Err(broadcast::error::RecvError::Lagged(skipped)) => {
@@ -448,8 +548,9 @@ pub async fn get_server_info() -> Result<ServerInfo, Box<dyn std::error::Error>>
 pub async fn stop_server() -> Result<(), Box<dyn std::error::Error>> {
     let mut state = WS_STATE.write().await;
 
-    if state.is_some() {
-        *state = None;
+    if let Some(server_state) = state.take() {
+        // Send shutdown signal to terminate the listener task
+        let _ = server_state.shutdown_tx.send(());
         println!("[tnnl] WebSocket server stopped");
         Ok(())
     } else {
