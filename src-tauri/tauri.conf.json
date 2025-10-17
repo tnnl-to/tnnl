@@ -1,6 +1,6 @@
 {
   "productName": "tnnl",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "identifier": "com.tnnl.app",
   "build": {
     "beforeDevCommand": "npm run cleanup && npm run dev",

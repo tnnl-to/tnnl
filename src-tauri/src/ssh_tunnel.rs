@@ -155,6 +155,7 @@ impl SshTunnelManager {
     /// Example: ssh -R remote_port:localhost:local_port -N tnnl@server
     pub async fn establish_tunnel(
         &self,
+        app_handle: &AppHandle,
         remote_port: u16,
         local_port: u16,
     ) -> Result<()> {
@@ -203,25 +204,73 @@ impl SshTunnelManager {
         eprintln!("[SSH Tunnel] SSH command: ssh -R {}:localhost:{} -N -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -i {} {}@{}",
             remote_port, local_port, self.ssh_key_path.display(), SSH_USER, SSH_SERVER);
 
-        let ssh_child = Command::new("ssh")
+        // Try using Tauri shell plugin first (works in sandbox), fallback to std::process::Command
+        let ssh_result = app_handle.shell()
+            .command("ssh")
             .args(&[
                 "-R", &format!("{}:localhost:{}", remote_port, local_port),
-                "-N", // No remote command
+                "-N",
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "ServerAliveInterval=30",
                 "-o", "ServerAliveCountMax=3",
                 "-i", &self.ssh_key_path.to_string_lossy(),
                 &format!("{}@{}", SSH_USER, SSH_SERVER),
             ])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| {
-                eprintln!("[SSH Tunnel] Failed to spawn SSH process: {}", e);
-                e
-            })?;
+            .spawn();
 
-        let pid = ssh_child.id();
+        let pid = match ssh_result {
+            Ok((mut rx, child)) => {
+                let pid = child.pid();
+
+                // Spawn a task to handle SSH output/errors
+                tokio::spawn(async move {
+                    while let Some(event) = rx.recv().await {
+                        match event {
+                            tauri_plugin_shell::process::CommandEvent::Stderr(line) => {
+                                eprintln!("[SSH stderr] {}", String::from_utf8_lossy(&line));
+                            }
+                            tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
+                                println!("[SSH stdout] {}", String::from_utf8_lossy(&line));
+                            }
+                            tauri_plugin_shell::process::CommandEvent::Error(err) => {
+                                eprintln!("[SSH error] {}", err);
+                            }
+                            tauri_plugin_shell::process::CommandEvent::Terminated(payload) => {
+                                eprintln!("[SSH] Process terminated with code: {:?}", payload.code);
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                });
+
+                pid as u32
+            }
+            Err(e) => {
+                // Fallback to std::process::Command (for dev builds without signing)
+                eprintln!("[SSH Tunnel] Tauri shell failed ({}), trying std::process::Command", e);
+
+                let ssh_child = Command::new("ssh")
+                    .args(&[
+                        "-R", &format!("{}:localhost:{}", remote_port, local_port),
+                        "-N",
+                        "-o", "StrictHostKeyChecking=no",
+                        "-o", "ServerAliveInterval=30",
+                        "-o", "ServerAliveCountMax=3",
+                        "-i", &self.ssh_key_path.to_string_lossy(),
+                        &format!("{}@{}", SSH_USER, SSH_SERVER),
+                    ])
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()
+                    .map_err(|e| {
+                        eprintln!("[SSH Tunnel] Failed to spawn SSH process: {} (kind: {:?})", e, e.kind());
+                        e
+                    })?;
+
+                ssh_child.id()
+            }
+        };
         println!("[SSH Tunnel] SSH process started with PID: {}", pid);
 
         // Update state
@@ -336,7 +385,7 @@ pub async fn establish_ssh_tunnel(
     let manager = manager_lock.lock().await;
 
     match manager.as_ref() {
-        Some(mgr) => mgr.establish_tunnel(remote_port, local_port).await,
+        Some(mgr) => mgr.establish_tunnel(app_handle, remote_port, local_port).await,
         None => Err(anyhow!("Tunnel manager not initialized")),
     }
 }
