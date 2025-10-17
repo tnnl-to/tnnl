@@ -477,6 +477,23 @@ pub async fn start_focus_observer() -> Result<(), Box<dyn std::error::Error>> {
                     println!("[tnnl] Focus changed to: {}", app_info.app_name);
                     last_app = Some(current_app);
 
+                    // Skip updating crop if user switched to a browser (to avoid feedback loop)
+                    // Common browser bundle IDs
+                    let is_browser = matches!(app_info.bundle_id.as_str(),
+                        "com.google.Chrome" |
+                        "com.apple.Safari" |
+                        "org.mozilla.firefox" |
+                        "com.microsoft.edgemac" |
+                        "com.brave.Browser" |
+                        "com.operasoftware.Opera" |
+                        "com.vivaldi.Vivaldi"
+                    );
+
+                    if is_browser {
+                        println!("[tnnl] Skipping crop update for browser (prevents feedback loop)");
+                        continue;
+                    }
+
                     // Refresh window crop
                     if let Err(e) = crate::screen_capture::refresh_window_crop().await {
                         eprintln!("[tnnl] Failed to refresh crop on focus change: {}", e);
